@@ -1,0 +1,8 @@
+func sayHelloTo(name)
+    println("Hello, "+name+"!");
+
+sayHelloTo("Joey");
+sayHelloTo("Brandon");
+sayHelloTo("Varun");
+sayHelloTo("David");
+sayHelloTo("Lauren");
