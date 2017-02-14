@@ -1,7 +1,7 @@
 HIHI
 ----
 
-Pronounced "hi-hi" like "he he".
+Pronounced "hi-hi" like "high high".
 
 *HIHI Is HIPL's Interpreter*
 
