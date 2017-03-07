@@ -5,4 +5,11 @@ package com.mattmerr.hitch.parsetokens.expression;
  */
 public abstract class ExpressionToken {
     
+    public enum ExpressionTokenType {
+        
+        OPERATOR,
+        VALUE
+        
+    }
+    
 }

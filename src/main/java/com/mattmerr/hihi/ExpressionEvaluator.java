@@ -1,11 +1,11 @@
 package com.mattmerr.hihi;
 
-import com.mattmerr.hitch.parsetokens.ParseNodeExpression;
+import com.mattmerr.hihi.stdlib.HInteger;
+import com.mattmerr.hihi.stdlib.HObject;
+import com.mattmerr.hihi.stdlib.HString;
+import com.mattmerr.hihi.stdlib.HCharacter;
+import com.mattmerr.hitch.parsetokens.ParseNodeCall;
 import com.mattmerr.hitch.parsetokens.expression.*;
-import com.mattmerr.hitch.tokens.Value;
-
-import java.util.Collections;
-import java.util.Stack;
 
 import static java.util.Collections.singletonList;
 
@@ -15,7 +15,7 @@ import static java.util.Collections.singletonList;
 public class ExpressionEvaluator {
     
     public static HObject evaluate(HScope scope, ExpressionToken expr) {
-        if (expr instanceof Literal<?>) {
+        if (expr instanceof Literal) {
             Object val = ((Literal)expr).value.value;
             
             if (val instanceof String)
@@ -23,27 +23,34 @@ public class ExpressionEvaluator {
     
             if (val instanceof Character)
                 return new HCharacter((Character) val);
+            
+            if (val instanceof Integer)
+                return new HInteger((Integer) val);
         }
         
-        if (expr instanceof Variable) {
+        else if (expr instanceof Variable) {
             return scope.get(((Variable) expr).qualifiedName);
         }
         
-        if (expr instanceof BinaryOperation) {
+        else if (expr instanceof BinaryOperation) {
             BinaryOperation binop = (BinaryOperation) expr;
             HObject leftVal = evaluate(scope, binop.left);
             HObject rightVal = evaluate(scope, binop.right);
             
             if (binop.type == Operation.OperationType.ADD) {
-                if (leftVal.attributes.containsKey("+")) {
-                    HObject result = ((HFunction) leftVal.get(scope, "+"))
-                            .call(singletonList(rightVal), scope);
+                if (leftVal.get(scope, "+") != HObject.UNDEFINED) {
+                    HObject result = leftVal.getExpecting(HFunction.class, scope, "+")
+                            .call(scope, singletonList(rightVal));
                     
                     return result;
                 } else {
                     throw new RuntimeException("+ is not defined for " + leftVal);
                 }
             }
+        }
+        
+        else if (expr instanceof Call) {
+            return HFunction.call((Call)expr, scope);
         }
         
         throw new RuntimeException("Unsupported Expression " + expr);

@@ -10,8 +10,8 @@ import com.mattmerr.hitch.tokens.TokenType;
  */
 public class ParseNodeVariable extends ParseNodeObject {
     
-    ParseNodeClass type;
-    String identifier;
+    public ParseNodeClass type;
+    public String identifier;
     
     public static ParseNodeVariable parseArgumentDeclaration(ParsingScope scope, TokenStream tokenStream) {
         if (tokenStream.peek().type == TokenType.IDENTIFIER) {
@@ -29,5 +29,9 @@ public class ParseNodeVariable extends ParseNodeObject {
         
         // TODO
         return null;
+    }
+    
+    public void set(String key, ParseNodeObject val) {
+        attributes.put(key, val);
     }
 }

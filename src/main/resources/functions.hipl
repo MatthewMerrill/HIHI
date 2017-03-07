@@ -1,8 +1,12 @@
 func sayHelloTo(name)
     println("Hello, "+name+"!");
 
-sayHelloTo("Joey");
-sayHelloTo("Brandon");
-sayHelloTo("Varun");
-sayHelloTo("David");
-sayHelloTo("Lauren");
+sayHelloTo("Charlie");
+sayHelloTo("Dennis");
+sayHelloTo("Mac");
+sayHelloTo("Dee");
+sayHelloTo("Frank");
+
+//println("abc123".reverse());
+
+sayHelloToMyLittleFriend();

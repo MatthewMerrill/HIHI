@@ -36,12 +36,12 @@ public class HStatement {
         } else if (statement instanceof ParseNodeCall) {
             ParseNodeCall call = (ParseNodeCall) statement;
             ((HFunction)scope.get(call.qualifiedFunction))
-                    .call(  call.arguments
+                    .call(  scope,
+                            call.arguments
                                     .stream()
                                     .map(exp -> ExpressionEvaluator.evaluate(scope, exp.root))
-                                    .collect(Collectors.toList()),
-        
-                            scope);
+                                    .collect(Collectors.toList())
+                    );
         }
     }
 }

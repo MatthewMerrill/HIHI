@@ -17,12 +17,16 @@ public class TokenParser {
     }
     
     public ParseNodeBlock parse() {
+        return parse(new ParsingScope());
+    }
+    
+    public ParseNodeBlock parse(ParsingScope scope) {
         if (result != null) return result;
         
-        ParsingScope scope = new ParsingScope();
         ParseNodeBlock program = new ParseNodeBlock();
         
         while (!tokenStream.eof()) {
+            
             program.addStatement(ParseNodeStatement.parse(scope, tokenStream));
         }
         

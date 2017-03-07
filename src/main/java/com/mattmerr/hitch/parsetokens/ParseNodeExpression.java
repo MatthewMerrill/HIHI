@@ -1,18 +1,18 @@
 package com.mattmerr.hitch.parsetokens;
 
-import com.mattmerr.hihi.HObject;
-import com.mattmerr.hihi.HScope;
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.parsetokens.expression.*;
 import com.mattmerr.hitch.tokens.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import java.util.function.BiFunction;
 
+import static com.mattmerr.hitch.parsetokens.expression.ExpressionToken.ExpressionTokenType.OPERATOR;
+import static com.mattmerr.hitch.parsetokens.expression.ExpressionToken.ExpressionTokenType.VALUE;
+import static com.mattmerr.hitch.parsetokens.expression.Operation.Associativity.LEFT;
+import static com.mattmerr.hitch.parsetokens.expression.Operation.Associativity.RIGHT;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.CLOSE_PARENTHESIS;
-import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.COMMA;
+import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.OPEN_PARENTHESIS;
 
 /**
  * Created by merrillm on 1/27/17.
@@ -47,40 +47,138 @@ public class ParseNodeExpression extends ParseNode {
     }
     
     public static ParseNodeExpression parseExpression(ParsingScope scope, TokenStream tokenStream) {
-        ExpressionToken ret = null;
+        return new ParseNodeExpression(buildTree(shuntingYard(scope, tokenStream), tokenStream));
+    }
     
-        if (tokenStream.peek().type == TokenType.STRING) {
-            Literal<String> val = new Literal<>();
-            val.value = ((Value<String>) tokenStream.next());
-            ret = val;
+    public static Queue<ExpressionToken> shuntingYard(ParsingScope scope, TokenStream tokenStream) {
+        Queue<ExpressionToken> output = new LinkedList<>();
+        Stack<ExpressionToken> buffer = new Stack<>();
+        ExpressionToken.ExpressionTokenType lastTokenType = null;
+        int parenDepth = 0;
+        
+        while (!tokenStream.eof()) {
+            Token tok = tokenStream.peek();
             
-        } else if (tokenStream.peek().type == TokenType.IDENTIFIER) {
-            ret = new Variable(((Identifier) tokenStream.next()).value);
+            if (tok instanceof Value) {
+                output.add(new Literal<>((Value) tok));
+                lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
+                
+            } else if (tok instanceof Identifier) {
+                output.add(new Variable(((Identifier) tok).value));
+                lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
+                
+            } else if (tok instanceof Operator) {
+                pushOperation(output, buffer, Operation.getOperation(((Operator) tok).value));
+                lastTokenType = ExpressionToken.ExpressionTokenType.OPERATOR;
+                
+            } else if (tok instanceof Punctuation) {
+                if (((Punctuation) tok).value == OPEN_PARENTHESIS) {
+                    
+                    if (lastTokenType == VALUE) {
+                        Call call = new Call();
+                        call.arguments = parseDelimited(scope, tokenStream,
+                                (sc, ts) -> parseExpression(sc, ts).root,
+                                Punctuation.PunctuationType.COMMA,
+                                Punctuation.PunctuationType.OPEN_PARENTHESIS,
+                                Punctuation.PunctuationType.CLOSE_PARENTHESIS);
+                        pushOperation(output, buffer, call);
+                        lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
+                    } else {
+                        buffer.push(new Parenthesis());
+                        lastTokenType = ExpressionToken.ExpressionTokenType.OPERATOR;
+                        parenDepth++;
+                    }
+                } else if (((Punctuation) tok).value == CLOSE_PARENTHESIS) {
+    
+                    if (parenDepth == 0 && buffer.isEmpty()) {
+                        if (lastTokenType != OPERATOR)
+                            return output;
+                        else
+                            throw tokenStream.parseException("Expected value, found " + tok);
+                    }
+                    
+                    while (!buffer.isEmpty() &&
+                            !(buffer.peek() instanceof Parenthesis
+                            || buffer.peek() instanceof  Call)) {
+                        output.add(buffer.pop());
+                    }
+                    if (buffer.isEmpty())
+                        throw tokenStream.parseException("Unmatched close parenthesis");
+    
+                    parenDepth--;
+                    
+                    ExpressionToken popped = buffer.pop();
+                    lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
+                } else {
+                    Operation op = Operation.getOperation(((Punctuation) tok).value);
+                    if (op != null) {
+                        pushOperation(output, buffer, op);
+                        lastTokenType = ExpressionToken.ExpressionTokenType.OPERATOR;
+                    } else {
+                        
+                    }
+                }
+            }
+            
+            
+            tokenStream.next();
         }
         
-        while (tokenStream.peek().type == TokenType.OPERATOR) {
-            if (((Operator)tokenStream.peek()).value == Operator.OperatorType.PLUS) {
-                tokenStream.next();
+        while (!buffer.isEmpty()) {
+            if (buffer.peek() instanceof Parenthesis)
+                throw tokenStream.parseException("Unmatched left parenthesis");
+            output.add(buffer.pop());
+        }
+        
+        return output;
+    }
+    private static void pushOperation(Queue<ExpressionToken> output, Stack<ExpressionToken> buffer, Operation toAdd) {
+        while (!buffer.empty() && buffer.peek() instanceof Operation) {
+            Operation o2 = (Operation) buffer.peek();
+        
+            if ((toAdd.type.associativity == LEFT && toAdd.type.precedence >= o2.type.precedence)
+                    || (toAdd.type.associativity == RIGHT && toAdd.type.precedence > o2.type.precedence)) {
+                output.add(o2);
+                buffer.pop();
+            } else {
+                break;
+            }
+        }
+    
+        buffer.add(toAdd);
+    }
+    
+    public static ExpressionToken buildTree(Queue<ExpressionToken> queue, TokenStream tokenStream) {
+        
+        if (queue.isEmpty()) {
+            throw tokenStream.parseException("Unexpected end of expression");
+        }
+        
+        Stack<ExpressionToken> stack = new Stack<>();
+        
+        while (!queue.isEmpty()) {
+            ExpressionToken cur = queue.remove();
+            
+            if (cur instanceof Literal || cur instanceof Variable) {
+                stack.push(cur);
                 
-                BinaryOperation binop = new BinaryOperation();
-                binop.type = Operation.OperationType.ADD;
-                binop.left = ret;
-                binop.right = parseExpression(scope, tokenStream).root;
+            } else if (cur instanceof BinaryOperation) {
+                BinaryOperation binop = (BinaryOperation) cur;
+                binop.right = stack.pop();
+                binop.left = stack.pop();
+                stack.push(binop);
                 
-                ret = binop;
+            } else if (cur instanceof Call) {
+                Call call = (Call) cur;
+                call.variable = stack.pop();
+                stack.push(call);
+                
             }
         }
         
-        return new ParseNodeExpression(ret);
-//        Stack<ExpressionToken> stack = new Stack<>();
-//
-//        while {
-//
-//
-//        }
-    }
-    
-    public static ParseNodeExpression parseParenthesis(ParsingScope scope, TokenStream tokenStream) {
-        return null;
+        if (stack.size() != 1)
+            throw tokenStream.parseException("Missing operator somewhere in this expression");
+        
+        return stack.pop();
     }
 }

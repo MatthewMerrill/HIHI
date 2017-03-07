@@ -120,27 +120,29 @@ public class TokenStream {
         AtomicBoolean isFloat = new AtomicBoolean(false);
         String number = readWhile(
                 (ch) -> isDigit(ch) || (ch == '.' && !isFloat.getAndSet(true)));
-        
-        if (isFloat.get() || input.peek() == 'f' || input.peek() == 'd') {
-            if (input.peek() == 'd') {
-                input.next();
-                return new Value<>(DOUBLE, Double.valueOf(number));
+    
+        if (!input.eof()) {
+            if (isFloat.get() || input.peek() == 'f' || input.peek() == 'd') {
+                if (input.peek() == 'd') {
+                    input.next();
+                    return new Value<>(DOUBLE, Double.valueOf(number));
+                }
+            
+                if (input.peek() == 'f')
+                    input.next();
+            
+                return new Value<>(FLOAT, Float.valueOf(number));
             }
-            
-            if (input.peek() == 'f')
+        
+            if (input.peek() == 'l') {
                 input.next();
-            
-            return new Value<>(FLOAT, Float.valueOf(number));
+                return new Value<>(LONG, Long.valueOf(number));
+            }
+        
+            if (input.peek() == 'i')
+                input.next();
         }
-        
-        if (input.peek() == 'l') {
-            input.next();
-            return new Value<>(LONG, Long.valueOf(number));
-        }
-        
-        if (input.peek() == 'i')
-            input.next();
-        
+    
         return new Value<>(INTEGER, Integer.valueOf(number));
     }
     private Token readIdentifier() {

@@ -9,4 +9,11 @@ public class Literal<T> extends ExpressionToken {
     
     public Value<T> value;
     
+    public Literal() {
+        
+    }
+    
+    public Literal(Value<T> value) {
+        this.value = value;
+    }
 }

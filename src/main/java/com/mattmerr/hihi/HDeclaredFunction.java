@@ -1,9 +1,8 @@
 package com.mattmerr.hihi;
 
+import com.mattmerr.hihi.stdlib.HObject;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunction;
-import com.mattmerr.hitch.parsetokens.ParseNodeStatement;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,7 +19,7 @@ public class HDeclaredFunction extends HFunction {
     }
     
     @Override
-    public HObject call(List<HObject> arguments, HScope scope) {
+    public HObject call(HScope scope, List<HObject> arguments) {
         scope = scope.childScope();
         
         for (String arg : argumentMapping) {

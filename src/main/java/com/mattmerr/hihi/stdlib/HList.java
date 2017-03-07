@@ -1,4 +1,10 @@
-package com.mattmerr.hihi;
+package com.mattmerr.hihi.stdlib;
+
+import com.mattmerr.hihi.HNativeFunction;
+import com.mattmerr.hihi.HScope;
+import com.mattmerr.hihi.stdlib.util.HiplClass;
+import com.mattmerr.hihi.stdlib.util.HiplMemberFunction;
+import com.mattmerr.hihi.stdlib.util.HiplOperatorOverload;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +12,7 @@ import java.util.List;
 /**
  * Created by merrillm on 2/5/17.
  */
+@HiplClass("List")
 public class HList extends HObject {
      
     private List<HObject> values = new ArrayList<>();
@@ -15,6 +22,12 @@ public class HList extends HObject {
             this.values.add(value);
     }
     
+    @HiplMemberFunction("add")
+    @HiplOperatorOverload(value = "+", otherType = HObject.class)
+    public HObject add(HScope scope, List<HObject> args) {
+        add(args.get(0));
+        return HObject.UNDEFINED;
+    }
     public void add(HObject value) {
         values.add(value);
     }
@@ -30,12 +43,5 @@ public class HList extends HObject {
     public int length() {
         return values.size();
     }
-    
-    {
-        this.attributes.put("+", new HNativeFunction((args, scope) -> {
-            values.add(args.get(0));
-            return UNDEFINED;
-        }));
-    }
-    
+        
 }

@@ -1,8 +1,5 @@
 package com.mattmerr.hitch.parsetokens;
 
-import com.mattmerr.hihi.HObject;
-import com.mattmerr.hihi.HScope;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,11 +15,13 @@ public class ParsingScope {
     public ParsingScope() {
         map.put("print", new ParseNodeFunction());
         map.put("println", new ParseNodeFunction());
+        map.put("sayHelloToMyLittleFriend", new ParseNodeFunction());
     }
     
     public ParsingScope(ParsingScope parent) {
         map.put("print", new ParseNodeFunction());
         map.put("println", new ParseNodeFunction());
+        map.put("sayHelloToMyLittleFriend", new ParseNodeFunction());
         this.parent = parent;
     }
     
