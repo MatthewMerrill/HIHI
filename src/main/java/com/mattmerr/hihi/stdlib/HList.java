@@ -9,6 +9,8 @@ import com.mattmerr.hihi.stdlib.util.HiplOperatorOverload;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.mattmerr.hitch.parsetokens.expression.Operation.OperationType.ADD;
+
 /**
  * Created by merrillm on 2/5/17.
  */
@@ -23,7 +25,7 @@ public class HList extends HObject {
     }
     
     @HiplMemberFunction("add")
-    @HiplOperatorOverload(value = "+", otherType = HObject.class)
+    @HiplOperatorOverload(value = ADD)
     public HObject add(HScope scope, List<HObject> args) {
         add(args.get(0));
         return HObject.UNDEFINED;

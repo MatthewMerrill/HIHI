@@ -37,16 +37,15 @@ public class ExpressionEvaluator {
             HObject leftVal = evaluate(scope, binop.left);
             HObject rightVal = evaluate(scope, binop.right);
             
-            if (binop.type == Operation.OperationType.ADD) {
-                if (leftVal.get(scope, "+") != HObject.UNDEFINED) {
-                    HObject result = leftVal.getExpecting(HFunction.class, scope, "+")
+//            if (binop.type ) {
+                if (leftVal.get(scope, "_"+binop.type.name()) != HObject.UNDEFINED) {
+                    HObject result = leftVal.getExpecting(HFunction.class, scope, "_"+binop.type.name())
                             .call(scope, singletonList(rightVal));
-                    
                     return result;
                 } else {
-                    throw new RuntimeException("+ is not defined for " + leftVal);
+                    throw new RuntimeException("_"+binop.type.name()+" is not defined for " + leftVal);
                 }
-            }
+//            }
         }
         
         else if (expr instanceof Call) {

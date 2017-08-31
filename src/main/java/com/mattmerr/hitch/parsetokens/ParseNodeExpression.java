@@ -90,9 +90,12 @@ public class ParseNodeExpression extends ParseNode {
                     }
                 } else if (((Punctuation) tok).value == CLOSE_PARENTHESIS) {
     
-                    if (parenDepth == 0 && buffer.isEmpty()) {
-                        if (lastTokenType != OPERATOR)
+                    if (parenDepth == 0) {
+                        if (lastTokenType != OPERATOR) {
+                            while (!buffer.isEmpty())
+                                output.add(buffer.pop());
                             return output;
+                        }
                         else
                             throw tokenStream.parseException("Expected value, found " + tok);
                     }

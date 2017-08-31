@@ -23,17 +23,17 @@ public class HStatement {
     public static void run(ParseNodeStatement statement, HScope scope) {
         if (statement instanceof ParseNodeDeclaration) {
             scope.declare(((ParseNodeDeclaration)statement).qualifiedIdentifier);
-        
-        } else if (statement instanceof ParseNodeAssignment) {
+        }
+        else if (statement instanceof ParseNodeAssignment) {
             ParseNodeAssignment assignment = (ParseNodeAssignment) statement;
             scope.put(assignment.identifier, ExpressionEvaluator.evaluate(scope, assignment.value.root));
-        
-        } else if (statement instanceof ParseNodeFunctionDeclaration) {
+        }
+        else if (statement instanceof ParseNodeFunctionDeclaration) {
             ParseNodeFunctionDeclaration decl = (ParseNodeFunctionDeclaration) statement;
             scope.declare(decl.function.name);
             scope.put(decl.function.name, new HDeclaredFunction(decl.function));
-        
-        } else if (statement instanceof ParseNodeCall) {
+        }
+        else if (statement instanceof ParseNodeCall) {
             ParseNodeCall call = (ParseNodeCall) statement;
             ((HFunction)scope.get(call.qualifiedFunction))
                     .call(  scope,
@@ -42,6 +42,9 @@ public class HStatement {
                                     .map(exp -> ExpressionEvaluator.evaluate(scope, exp.root))
                                     .collect(Collectors.toList())
                     );
+        }
+        else if (statement instanceof ParseNodeBlock) {
+            HProg.run((ParseNodeBlock) statement, new HScope(scope));
         }
     }
 }

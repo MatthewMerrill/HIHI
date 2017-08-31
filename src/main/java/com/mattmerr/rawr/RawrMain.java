@@ -10,6 +10,8 @@ import com.mattmerr.hitch.parsetokens.ParseNodeBlock;
 import com.mattmerr.hitch.parsetokens.ParseNodeExpression;
 import com.mattmerr.hitch.parsetokens.ParsingScope;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Collections;
 import java.util.Scanner;
 
@@ -21,6 +23,22 @@ public class RawrMain {
     public static boolean QUIET = false;
     
     public static void main(String[] args) {
+        
+        if (args.length > 0) {
+            try {
+                TokenStream tokenStream = new TokenStream(new FileInputStream(new File(args[0])));
+                TokenParser parser = new TokenParser(tokenStream);
+                ParseNodeBlock block = parser.parse();
+                HScope scope = new HScope();
+                scope.declareStandardFunctions();
+                HProg.run(block, scope);
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        
         Scanner scn = new Scanner(System.in);
         
         ParsingScope scope = new ParsingScope();

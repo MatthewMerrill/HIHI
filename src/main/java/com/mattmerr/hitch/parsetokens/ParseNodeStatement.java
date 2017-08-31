@@ -1,10 +1,7 @@
 package com.mattmerr.hitch.parsetokens;
 
 import com.mattmerr.hitch.TokenStream;
-import com.mattmerr.hitch.tokens.Identifier;
-import com.mattmerr.hitch.tokens.Keyword;
-import com.mattmerr.hitch.tokens.Punctuation;
-import com.mattmerr.hitch.tokens.TokenType;
+import com.mattmerr.hitch.tokens.*;
 
 import java.security.Key;
 
@@ -46,8 +43,7 @@ public abstract class ParseNodeStatement extends ParseNode {
                 throw tokenStream.parseException("Unexpected punctuation");
             }
         }
-        
-        if (peekType == TokenType.KEYWORD) {
+        else if (peekType == TokenType.KEYWORD) {
             Keyword keyword = (Keyword) tokenStream.peek();
             
             if (keyword.value.equals("func")) {
@@ -55,8 +51,31 @@ public abstract class ParseNodeStatement extends ParseNode {
                 decl.function = ParseNodeFunction.parseFunction(scope, tokenStream);
                 return decl;
             }
+        }
+        else if (peekType == TokenType.PUNCTUATION) {
+            Punctuation punc = (Punctuation) tokenStream.peek();
             
+            if (punc.value == Punctuation.PunctuationType.OPEN_BRACKET) {
+                return ParseNodeBlock.parse(scope, tokenStream);
+            }
+        }
+        else if (peekType == TokenType.OPERATOR) {
+            Operator op = (Operator) tokenStream.peek();
             
+            if (op.type.equals(Operator.OperatorType.EQ)) {
+                tokenStream.next();
+                
+                if (tokenStream.peek().type == TokenType.OPERATOR
+                        && ((Operator)tokenStream.peek()).value == Operator.OperatorType.GT) {
+                    tokenStream.next();
+                    
+                    ParseNodeReturnStatement returnStatement = new ParseNodeReturnStatement(ParseNodeExpression.parseExpression(scope, tokenStream));
+                    tokenStream.expectingPunctuation(SEMICOLON);
+                    
+                    return returnStatement;
+                }
+                
+            }
         }
 
         throw tokenStream.parseException("Couldn't parse statement");

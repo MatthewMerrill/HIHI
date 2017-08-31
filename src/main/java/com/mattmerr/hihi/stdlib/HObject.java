@@ -4,6 +4,7 @@ import com.mattmerr.hihi.HNativeFunction;
 import com.mattmerr.hihi.HScope;
 import com.mattmerr.hihi.stdlib.util.HiplMemberFunction;
 import com.mattmerr.hihi.stdlib.util.HiplOperatorOverload;
+import com.mattmerr.hitch.parsetokens.expression.Operation;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.lang.reflect.Method;
@@ -58,11 +59,11 @@ public class HObject {
                 continue;
             }
             
-            if (!precedenceMappings.containsKey(annote.value())
-                    || precedenceMappings.get(annote.value())
+            if (!precedenceMappings.containsKey("_"+annote.value().name())
+                    || precedenceMappings.get("_"+annote.value().name())
                         .getDeclaringClass()
                         .isAssignableFrom(method.getDeclaringClass())) {
-                precedenceMappings.put(annote.value(), method);
+                precedenceMappings.put("_" + annote.value().name(), method);
             }
         }
         

@@ -1,0 +1,4 @@
+func testBlock() {
+    print("Hello ");
+    print("World!");
+}

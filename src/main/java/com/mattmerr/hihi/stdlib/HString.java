@@ -4,8 +4,11 @@ import com.mattmerr.hihi.HFunction;
 import com.mattmerr.hihi.HScope;
 import com.mattmerr.hihi.stdlib.util.HiplMemberFunction;
 import com.mattmerr.hihi.stdlib.util.HiplOperatorOverload;
+import com.mattmerr.hitch.parsetokens.expression.Operation;
 
 import java.util.List;
+
+import static com.mattmerr.hitch.parsetokens.expression.Operation.OperationType.ADD;
 
 /**
  * Created by merrillm on 2/5/17.
@@ -38,7 +41,7 @@ public class HString extends HList {
     }
     
     @HiplMemberFunction(value = "concat")
-    @HiplOperatorOverload(value = "+")
+    @HiplOperatorOverload(value = ADD)
     public HObject concat(HScope scope, List<HObject> args) {
         HString otherStringified = args.get(0)
                 .getExpecting(HFunction.class, scope, "stringify")

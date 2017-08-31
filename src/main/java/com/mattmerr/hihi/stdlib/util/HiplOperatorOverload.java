@@ -1,6 +1,7 @@
 package com.mattmerr.hihi.stdlib.util;
 
 import com.mattmerr.hihi.stdlib.HObject;
+import com.mattmerr.hitch.parsetokens.expression.Operation;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -11,7 +12,7 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface HiplOperatorOverload {
     
-    String value();
-    Class<? extends HObject> otherType() default HObject.class;
+    Operation.OperationType value();
+    Class<? extends HObject>[] otherType() default HObject.class;
     
 }
