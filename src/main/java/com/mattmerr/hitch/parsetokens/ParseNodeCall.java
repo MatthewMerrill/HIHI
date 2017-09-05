@@ -21,10 +21,10 @@ public class ParseNodeCall extends ParseNodeStatement {
                                       ParsingScope scope, TokenStream tokenStream) {
         ParseNodeCall call = new ParseNodeCall();
     
-        if (obj instanceof ParseNodeFunction) {
+//        if (obj instanceof ParseNodeFunction) {
             call.qualifiedFunction = qualified;
-        }
-    
+//        }
+
         call.arguments = ParseNodeFunction.parseCallArguments(scope, tokenStream);
         tokenStream.skipPunctuation(SEMICOLON);
         

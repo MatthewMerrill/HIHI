@@ -62,7 +62,7 @@ public abstract class ParseNodeStatement extends ParseNode {
         else if (peekType == TokenType.OPERATOR) {
             Operator op = (Operator) tokenStream.peek();
             
-            if (op.type.equals(Operator.OperatorType.EQ)) {
+            if (op.value.equals(Operator.OperatorType.EQ)) {
                 tokenStream.next();
                 
                 if (tokenStream.peek().type == TokenType.OPERATOR
@@ -70,7 +70,7 @@ public abstract class ParseNodeStatement extends ParseNode {
                     tokenStream.next();
                     
                     ParseNodeReturnStatement returnStatement = new ParseNodeReturnStatement(ParseNodeExpression.parseExpression(scope, tokenStream));
-                    tokenStream.expectingPunctuation(SEMICOLON);
+                    tokenStream.skipPunctuation(SEMICOLON);
                     
                     return returnStatement;
                 }
