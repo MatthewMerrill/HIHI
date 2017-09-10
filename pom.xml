@@ -31,19 +31,6 @@
   </build>
   
   <dependencies>
-    <!-- https://mvnrepository.com/artifact/asm/asm -->
-    <dependency>
-      <groupId>asm</groupId>
-      <artifactId>asm</artifactId>
-      <version>4.0_RC2</version>
-    </dependency>
-  
-    <!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-commons -->
-    <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm-commons</artifactId>
-      <version>5.1</version>
-    </dependency>
   
     <!-- https://mvnrepository.com/artifact/junit/junit -->
     <dependency>

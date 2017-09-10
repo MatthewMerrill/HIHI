@@ -60,6 +60,21 @@ public class TokenStream {
         
         throw parseException("Expected one of: " + Arrays.toString(allowedTypes) + " found " + peek());
     }
+    public void skipOperator(OperatorType... allowedTypes) {
+        expectingOperator(allowedTypes);
+        next();
+    }
+    public void expectingOperator(OperatorType... allowedTypes){
+        if (peek().type == OPERATOR) {
+            OperatorType foundType = ((Operator) peek()).value;
+            for (OperatorType type : allowedTypes) {
+                if (foundType == type)
+                    return;
+            }
+        }
+
+        throw parseException("Expected one of: " + Arrays.toString(allowedTypes) + " found " + peek());
+    }
     
     
     private Token readNext() {
@@ -171,8 +186,9 @@ public class TokenStream {
             if (escaped) {
                 Character unescaped = (Grammar.ESCAPE_CHARS.get(ch));
                 if (unescaped == null)
-                    throwParseException("Unknown escape character");
+                    throwParseException("Unknown escape character: " + ch);
                 sb.append(unescaped);
+                escaped = false;
             } else if (ch == '\\') {
                 escaped = true;
             } else if (ch == end) {

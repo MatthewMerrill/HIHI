@@ -47,22 +47,29 @@ public class RawrMain {
         
         printPrompt();
         while (scn.hasNextLine()) {
-            String line = scn.nextLine().trim();
-            
-            if (!line.isEmpty()) {
-                if (line.endsWith(";")) {
-                    TokenStream ts = new TokenStream(line);
-                    TokenParser parser = new TokenParser(ts);
-                    ParseNodeBlock block = parser.parse(scope);
-                    HProg.run(block, hScope);
-                } else {
-                    TokenStream ts = new TokenStream(line);
-                    ParseNodeExpression exp = ParseNodeExpression.parseExpression(scope, ts);
-                    HObject res = ExpressionEvaluator.evaluate(hScope, exp.root);
-                    System.out.println(res.stringValue(hScope, Collections.emptyList()).nativeValue());
+            try {
+                String line = scn.nextLine().trim();
+
+                if (!line.isEmpty()) {
+                    if (line.endsWith(";")) {
+                        TokenStream ts = new TokenStream(line);
+                        TokenParser parser = new TokenParser(ts);
+                        ParseNodeBlock block = parser.parse(scope);
+                        HProg.run(block, hScope);
+                    }
+                    else {
+                        TokenStream ts = new TokenStream(line);
+                        ParseNodeExpression exp = ParseNodeExpression.parseExpression(scope, ts);
+                        HObject res = ExpressionEvaluator.evaluate(hScope, exp.root);
+                        System.out.println(
+                            res.stringValue(hScope, Collections.emptyList()).nativeValue());
+                    }
                 }
+            } catch (Exception e) {
+                System.out.print("ERR! ");
+                e.printStackTrace(System.out);
             }
-            
+
             printPrompt();
         }
     }

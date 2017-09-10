@@ -29,6 +29,11 @@ import static org.bytedeco.javacpp.LLVM.LLVMVerifyModule;
 import com.mattmerr.hitch.TokenParser;
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.parsetokens.ParseNodeBlock;
+import java.io.File;
+import java.io.FileReader;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.LLVM;
 import org.bytedeco.javacpp.LLVM.LLVMExecutionEngineRef;
@@ -44,12 +49,30 @@ public class HaccMain {
 
   public static void main(String[] args) {
     ProgSink sink = new ProgSink(System.out);
-//    TokenStream ts = new TokenStream("func hello(name) println(\"Hello\"+name); hello(\"World\");");
-    TokenStream ts = new TokenStream("func hello(name) { printf(\"Hello LLVM!\"); }");
-//    TokenStream ts = new TokenStream("{}");
-
+    String input;
+    if (args.length == 1) {
+      try {
+        input = String.join("\n", Files.readAllLines(Paths.get(args[0])));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    else {
+      input = ""
+          + "func<<string>, void> hello(name) {\n"
+          + "  if (1)\n"
+          + "    printf(\"Hello %s!\\n\", \"Alpha\");\n"
+          + "  if (1) {\n"
+          + "    var<string> b = \"Beta\";\n"
+          + "    printf(\"Hello %s!\\n\", b);\n"
+          + "  }\n"
+          + "  else\n"
+          + "    printf(\"Hello %s!\\n\", \"Gamma\");\n"
+          + "}\n";
+    }
+    System.out.printf("Input: \"%s\"\n", input);
+    TokenStream ts = new TokenStream(input);
     TokenParser parser = new TokenParser(ts);
-
 
     BytePointer error = new BytePointer((Pointer)null); // Used to retrieve messages from functions
     LLVMLinkInMCJIT();
@@ -58,19 +81,11 @@ public class HaccMain {
     LLVMInitializeNativeDisassembler();
     LLVMInitializeNativeTarget();
 
-//    parser.parse();
-//    LLVMModuleRef moduleRef = Ast2LLVM.create(null);
-//    LLVMDumpModule(moduleRef);
     HScope scope = Ast2LLVM.visit(parser.parse());
     LLVMModuleRef mod = scope.getModuleRef();
     LLVMDumpModule(mod);
 
     LLVMVerifyModule(mod, LLVMAbortProcessAction, error);
-//    LLVM.LLVMWriteBitcodeToFD(moduleRef, 1, 0, 0);
-
-//    sink.writeNoBrackets(parser.parse());
-
-
 
     LLVMExecutionEngineRef engine = new LLVMExecutionEngineRef();
     if(LLVMCreateJITCompilerForModule(engine, mod, 2, error) != 0) {
@@ -89,6 +104,7 @@ public class HaccMain {
     LLVMRunPassManager(pass, mod);
 //    LLVMDumpModule(mod);
 //
+
     LLVMGenericValueRef exec_args = LLVMCreateGenericValueOfInt(LLVMInt32Type(), 10, 0);
     LLVMGenericValueRef exec_res = LLVMRunFunction(engine, scope.get("hello"), 1, exec_args);
 //    System.err.println();

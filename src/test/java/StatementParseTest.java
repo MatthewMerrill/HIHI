@@ -1,15 +1,19 @@
 import static com.google.common.truth.Truth.assertThat;
 
 import com.mattmerr.hitch.TokenStream;
+import com.mattmerr.hitch.parsetokens.ParseNodeAssignedDeclaration;
 import com.mattmerr.hitch.parsetokens.ParseNodeBlock;
 import com.mattmerr.hitch.parsetokens.ParseNodeCall;
+import com.mattmerr.hitch.parsetokens.ParseNodeDeclaration;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunction;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunctionDeclaration;
+import com.mattmerr.hitch.parsetokens.ParseNodeIfStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeReturnStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeStatement;
 import com.mattmerr.hitch.parsetokens.ParsingScope;
 import com.mattmerr.hitch.parsetokens.expression.Call;
 import com.mattmerr.hitch.parsetokens.expression.Literal;
+import com.mattmerr.hitch.parsetokens.expression.Variable;
 import com.mattmerr.hitch.tokens.TokenType;
 import org.junit.Test;
 
@@ -18,7 +22,7 @@ public class StatementParseTest {
 
   @Test
   public void returnStatement() {
-    String input = "func() => 42;";
+    String input = "func<<>,int>() => 42;";
     TokenStream tokenStream = new TokenStream(input);
     ParsingScope scope = new ParsingScope();
 
@@ -73,9 +77,88 @@ public class StatementParseTest {
       assertThat(childStatement).isInstanceOf(ParseNodeReturnStatement.class);
       ParseNodeReturnStatement returnStatement = (ParseNodeReturnStatement) childStatement;
       assertThat(returnStatement.value.root).isInstanceOf(Call.class);
-      assertThat(((Call)(returnStatement.value.root)).variable).isEqualTo("c");
+      Call call = (Call)(returnStatement.value.root);
+      assertThat(call.variable).isInstanceOf(Variable.class);
+      assertThat(((Variable)(call.variable)).qualifiedName).isEqualTo("c");
     }
 
   }
+
+  @Test
+  public void testIf() {
+    String input = "if(1){}";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeIfStatement.class);
+
+    ParseNodeIfStatement ifStatement = (ParseNodeIfStatement) statement;
+    assertThat(ifStatement.conditionExpression.root).isInstanceOf(Literal.class);
+    assertThat(ifStatement.ifTrueStatement).isInstanceOf(ParseNodeBlock.class);
+    assertThat(ifStatement.ifFalseStatement).isNull();
+  }
+
+  @Test
+  public void testIfElse() {
+    String input = "if(1){}else{}";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeIfStatement.class);
+
+    ParseNodeIfStatement ifStatement = (ParseNodeIfStatement) statement;
+    assertThat(ifStatement.conditionExpression.root).isInstanceOf(Literal.class);
+    assertThat(ifStatement.ifTrueStatement).isInstanceOf(ParseNodeBlock.class);
+    assertThat(ifStatement.ifFalseStatement).isInstanceOf(ParseNodeBlock.class);
+  }
+
+  @Test
+  public void testIfElseIf() {
+    String input = "if(1){}else if(1){}";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeIfStatement.class);
+
+    ParseNodeIfStatement ifStatement = (ParseNodeIfStatement) statement;
+    assertThat(ifStatement.conditionExpression.root).isInstanceOf(Literal.class);
+    assertThat(ifStatement.ifTrueStatement).isInstanceOf(ParseNodeBlock.class);
+    assertThat(ifStatement.ifFalseStatement).isInstanceOf(ParseNodeIfStatement.class);
+  }
+
+  @Test
+  public void testDeclaration() {
+    String input = "var<int> a;";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeDeclaration.class);
+    assertThat(statement).isNotInstanceOf(ParseNodeAssignedDeclaration.class);
+
+    ParseNodeDeclaration declaration = (ParseNodeDeclaration) statement;
+    assertThat(declaration.type).isEqualTo("int");
+    assertThat(declaration.qualifiedIdentifier).isEqualTo("a");
+  }
+
+  @Test
+  public void testAssignedDeclaration() {
+    String input = "var<int> a = 1;";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeDeclaration.class);
+    assertThat(statement).isInstanceOf(ParseNodeAssignedDeclaration.class);
+
+    ParseNodeAssignedDeclaration declaration = (ParseNodeAssignedDeclaration) statement;
+    assertThat(declaration.type).isEqualTo("int");
+    assertThat(declaration.qualifiedIdentifier).isEqualTo("a");
+    assertThat(declaration.assignmentExpression.root).isInstanceOf(Literal.class);
+  }
+
 
 }

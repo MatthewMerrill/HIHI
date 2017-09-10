@@ -19,7 +19,7 @@ public class Punctuation extends Token {
     public static Punctuation of(char ch) {
         return new Punctuation(PunctuationType.valueOfCode(ch));
     }
-    
+
     // ,;(){}[]
     public enum PunctuationType {
         DOT("."), COMMA(","), SEMICOLON(";"), OPEN_PARENTHESIS("("), CLOSE_PARENTHESIS(")"),

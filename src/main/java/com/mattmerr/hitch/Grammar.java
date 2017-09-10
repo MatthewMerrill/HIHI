@@ -11,7 +11,7 @@ public class Grammar {
     
     // KEEP THIS SORTED!
     private static final String[] keywords = {
-            "class", "do", "for", "func", "in", "while", "var"
+            "class", "do", "else", "for", "func", "if", "in", "var", "while",
     };
     
     private static final String IDENTIFIER_STARTER = "[a-zA-Z_]";
