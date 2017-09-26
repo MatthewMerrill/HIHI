@@ -76,25 +76,21 @@ public class ParseNodeExpression extends ParseNode {
       if (tok instanceof Value) {
         output.add(new Literal<>((Value) tok));
         lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
-
       }
       else if (tok instanceof Identifier) {
         output.add(new Variable(((Identifier) tok).value));
         lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
-
       }
       else if (tok instanceof Operator) {
         pushOperation(output, buffer, Operation.getOperation(((Operator) tok).value));
         lastTokenType = ExpressionToken.ExpressionTokenType.OPERATOR;
-
       }
       else if (tok instanceof Punctuation) {
         if (((Punctuation) tok).value == OPEN_PARENTHESIS) {
-
           if (lastTokenType == VALUE) {
             Call call = new Call();
             call.arguments = parseDelimited(scope, tokenStream,
-                (sc, ts) -> parseExpression(sc, ts).root,
+                ParseNodeExpression::parseExpression,
                 Punctuation.PunctuationType.COMMA,
                 Punctuation.PunctuationType.OPEN_PARENTHESIS,
                 Punctuation.PunctuationType.CLOSE_PARENTHESIS);
@@ -186,20 +182,17 @@ public class ParseNodeExpression extends ParseNode {
 
       if (cur instanceof Literal || cur instanceof Variable) {
         stack.push(cur);
-
       }
       else if (cur instanceof BinaryOperation) {
         BinaryOperation binop = (BinaryOperation) cur;
         binop.right = stack.pop();
         binop.left = stack.pop();
         stack.push(binop);
-
       }
       else if (cur instanceof Call) {
         Call call = (Call) cur;
         call.variable = stack.pop();
         stack.push(call);
-
       }
     }
 

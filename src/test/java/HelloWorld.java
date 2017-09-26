@@ -13,7 +13,7 @@ public class HelloWorld {
     public void helloworldHipl() {
         TokenStream tokenStream = new TokenStream(getClass().getResourceAsStream("helloworld.hipl"));
         TokenParser parser = new TokenParser(tokenStream);
-        ParseNodeBlock parseNodeProgram = parser.parse();
+        ParseNodeBlock parseNodeProgram = parser.parse().block;
         HProg.run(parseNodeProgram);
     }
     
@@ -21,7 +21,7 @@ public class HelloWorld {
     public void functionsHipl() {
         TokenStream tokenStream = new TokenStream(getClass().getResourceAsStream("functions.hipl"));
         TokenParser parser = new TokenParser(tokenStream);
-        ParseNodeBlock parseNodeProgram = parser.parse();
+        ParseNodeBlock parseNodeProgram = parser.parse().block;
         HProg.run(parseNodeProgram);
     }
 }

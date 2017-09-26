@@ -25,7 +25,7 @@ public class ParseNodeBlock extends ParseNodeStatement {
         return Collections.unmodifiableList(statementList);
     }
     
-    public static ParseNodeStatement parse(ParsingScope scope, TokenStream tokenStream) {
+    public static ParseNodeBlock parse(ParsingScope scope, TokenStream tokenStream) {
         tokenStream.skipPunctuation(Punctuation.PunctuationType.OPEN_BRACKET);
         
         ParseNodeBlock block = new ParseNodeBlock();

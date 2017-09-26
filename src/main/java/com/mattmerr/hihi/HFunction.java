@@ -38,7 +38,7 @@ public abstract class HFunction extends HObject {
                 .call(  scope,
                         call.arguments
                                 .stream()
-                                .map(exp -> ExpressionEvaluator.evaluate(scope, exp))
+                                .map(exp -> ExpressionEvaluator.evaluate(scope, exp.root))
                                 .collect(Collectors.toList())
                 );
     }

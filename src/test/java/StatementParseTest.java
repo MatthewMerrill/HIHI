@@ -8,6 +8,7 @@ import com.mattmerr.hitch.parsetokens.ParseNodeDeclaration;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunction;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunctionDeclaration;
 import com.mattmerr.hitch.parsetokens.ParseNodeIfStatement;
+import com.mattmerr.hitch.parsetokens.ParseNodeImportStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeReturnStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeStatement;
 import com.mattmerr.hitch.parsetokens.ParsingScope;
@@ -160,5 +161,30 @@ public class StatementParseTest {
     assertThat(declaration.assignmentExpression.root).isInstanceOf(Literal.class);
   }
 
+  @Test
+  public void testImportStatementA() {
+    String input = "import a.b.c;";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeImportStatement.class);
+
+    ParseNodeImportStatement importStatement = (ParseNodeImportStatement) statement;
+    assertThat(importStatement.importPath).isEqualTo("a.b.c");
+  }
+
+  @Test
+  public void testImportStatementB() {
+    String input = "import a;";
+    TokenStream tokenStream = new TokenStream(input);
+    ParsingScope scope = new ParsingScope();
+
+    ParseNodeStatement statement = ParseNodeStatement.parse(scope, tokenStream);
+    assertThat(statement).isInstanceOf(ParseNodeImportStatement.class);
+
+    ParseNodeImportStatement importStatement = (ParseNodeImportStatement) statement;
+    assertThat(importStatement.importPath).isEqualTo("a");
+  }
 
 }

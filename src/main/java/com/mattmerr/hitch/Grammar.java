@@ -1,7 +1,12 @@
 package com.mattmerr.hitch;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
+
+import com.sun.javafx.UnmodifiableArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,7 +16,7 @@ public class Grammar {
     
     // KEEP THIS SORTED!
     private static final String[] keywords = {
-            "class", "do", "else", "for", "func", "if", "in", "var", "while",
+            "class", "do", "else", "export", "for", "func", "if", "import", "in", "var", "while",
     };
     
     private static final String IDENTIFIER_STARTER = "[a-zA-Z_]";
@@ -24,6 +29,8 @@ public class Grammar {
         put('n', '\n'); put('r', '\r'); put('t', '\t');
         put('\\', '\\'); put('"', '"'); put('\'', '\'');
     }};
+
+    public static final List<String> keywordList = unmodifiableList(asList(keywords));
     
     public static boolean isKeyword(String kw) {
         return Arrays.binarySearch(keywords, kw) >= 0;

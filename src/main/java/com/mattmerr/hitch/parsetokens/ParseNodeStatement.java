@@ -21,45 +21,51 @@ public abstract class ParseNodeStatement extends ParseNode {
   public static ParseNodeStatement parse(ParsingScope scope, TokenStream tokenStream) {
     TokenType peekType = tokenStream.peek().type;
 
-    if (peekType == TokenType.IDENTIFIER) {
-      Identifier identifier = (Identifier) tokenStream.next();
-
-      StringBuilder qualified = new StringBuilder(identifier.value);
-      ParseNodeObject obj = scope.get(identifier.value);
-
-      while (tokenStream.peek().type == TokenType.PUNCTUATION
-          && ((Punctuation) tokenStream.peek()).value == DOT) {
-        tokenStream.next();
-
-        if (tokenStream.peek().type != TokenType.IDENTIFIER) {
-          throw tokenStream.parseException("Expected identifier");
-        }
-
-        Identifier nextId = (Identifier) (tokenStream.next());
-        qualified.append(".").append(nextId.value);
-        obj = obj.get(nextId.value);
-      }
-
-      if (tokenStream.peek().type == TokenType.PUNCTUATION) {
-        Punctuation punc = (Punctuation) tokenStream.peek();
-
-        if (punc.value == OPEN_PARENTHESIS) {
-          return ParseNodeCall.parse(obj, qualified.toString(), scope, tokenStream);
-        }
-
-        throw tokenStream.parseException("Unexpected punctuation");
-      }
-    }
-    else if (peekType == TokenType.KEYWORD) {
+//    if (peekType == TokenType.IDENTIFIER) {
+//      Identifier identifier = (Identifier) tokenStream.next();
+//
+//      StringBuilder qualified = new StringBuilder(identifier.value);
+//      ParseNodeObject obj = scope.get(identifier.value);
+//
+//      while (tokenStream.peek().type == TokenType.PUNCTUATION
+//          && ((Punctuation) tokenStream.peek()).value == DOT) {
+//        tokenStream.next();
+//
+//        if (tokenStream.peek().type != TokenType.IDENTIFIER) {
+//          throw tokenStream.parseException("Expected identifier");
+//        }
+//
+//        Identifier nextId = (Identifier) (tokenStream.next());
+//        qualified.append(".").append(nextId.value);
+//        obj = obj.get(nextId.value);
+//      }
+//
+//      if (tokenStream.peek().type == TokenType.PUNCTUATION) {
+//        Punctuation punc = (Punctuation) tokenStream.peek();
+//
+//        if (punc.value == OPEN_PARENTHESIS) {
+//          return ParseNodeCall.parse(obj, qualified.toString(), scope, tokenStream);
+//        }
+//
+//        throw tokenStream.parseException("Unexpected punctuation");
+//      }
+//    }
+    if (peekType == TokenType.KEYWORD) {
       Keyword keyword = (Keyword) tokenStream.peek();
 
-      if (keyword.value.equals("func")) {
+      if (keyword.value.equals("export")) {
+
+      }
+      else if (keyword.value.equals("func")) {
         ParseNodeFunctionDeclaration decl = new ParseNodeFunctionDeclaration();
         decl.function = ParseNodeFunction.parseFunction(scope, tokenStream);
         return decl;
       }
       else if (keyword.value.equals("if")) {
         return ParseNodeIfStatement.parse(scope, tokenStream);
+      }
+      else if (keyword.value.equals("import")) {
+        return ParseNodeImportStatement.parse(scope, tokenStream);
       }
       else if (keyword.value.equals("var")) {
         tokenStream.next();
@@ -96,6 +102,9 @@ public abstract class ParseNodeStatement extends ParseNode {
         scope.declare(declaration.qualifiedIdentifier);
         return declaration;
       }
+      else if (keyword.value.equals("while")) {
+        return ParseNodeWhileStatement.parse(scope, tokenStream);
+      }
     }
     else if (peekType == TokenType.PUNCTUATION) {
       Punctuation punc = (Punctuation) tokenStream.peek();
@@ -123,7 +132,11 @@ public abstract class ParseNodeStatement extends ParseNode {
       }
     }
 
-    throw tokenStream.parseException("Couldn't parse statement");
+    // Last ditch effort: Expression!
+    // TODO: Evaluate redundencies caused by adding this. (eg Call statements)
+    return ParseNodeExpressionStatement.parse(scope, tokenStream);
+
+//    throw tokenStream.parseException("Couldn't parse statement");
   }
 
 }

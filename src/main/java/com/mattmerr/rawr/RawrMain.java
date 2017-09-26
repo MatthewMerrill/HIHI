@@ -28,7 +28,7 @@ public class RawrMain {
             try {
                 TokenStream tokenStream = new TokenStream(new FileInputStream(new File(args[0])));
                 TokenParser parser = new TokenParser(tokenStream);
-                ParseNodeBlock block = parser.parse();
+                ParseNodeBlock block = parser.parse().block;
                 HScope scope = new HScope();
                 scope.declareStandardFunctions();
                 HProg.run(block, scope);
@@ -54,7 +54,7 @@ public class RawrMain {
                     if (line.endsWith(";")) {
                         TokenStream ts = new TokenStream(line);
                         TokenParser parser = new TokenParser(ts);
-                        ParseNodeBlock block = parser.parse(scope);
+                        ParseNodeBlock block = parser.parse(scope).block;
                         HProg.run(block, hScope);
                     }
                     else {

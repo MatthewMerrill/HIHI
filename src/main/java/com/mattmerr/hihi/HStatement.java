@@ -24,10 +24,10 @@ public class HStatement {
         if (statement instanceof ParseNodeDeclaration) {
             scope.declare(((ParseNodeDeclaration)statement).qualifiedIdentifier);
         }
-        else if (statement instanceof ParseNodeAssignment) {
-            ParseNodeAssignment assignment = (ParseNodeAssignment) statement;
-            scope.put(assignment.identifier, ExpressionEvaluator.evaluate(scope, assignment.value.root));
-        }
+//        else if (statement instanceof ParseNodeAssignment) {
+//            ParseNodeAssignment assignment = (ParseNodeAssignment) statement;
+//            scope.put(assignment.identifier, ExpressionEvaluator.evaluate(scope, assignment.value.root));
+//        }
         else if (statement instanceof ParseNodeFunctionDeclaration) {
             ParseNodeFunctionDeclaration decl = (ParseNodeFunctionDeclaration) statement;
             scope.declare(decl.function.name);

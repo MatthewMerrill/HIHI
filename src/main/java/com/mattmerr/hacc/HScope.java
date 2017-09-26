@@ -2,14 +2,24 @@ package com.mattmerr.hacc;
 
 import static org.bytedeco.javacpp.LLVM.LLVMAddFunction;
 import static org.bytedeco.javacpp.LLVM.LLVMFunctionType;
+import static org.bytedeco.javacpp.LLVM.LLVMFunctionTypeKind;
+import static org.bytedeco.javacpp.LLVM.LLVMGetElementType;
+import static org.bytedeco.javacpp.LLVM.LLVMGetTypeKind;
 import static org.bytedeco.javacpp.LLVM.LLVMInt1Type;
 import static org.bytedeco.javacpp.LLVM.LLVMInt32Type;
 import static org.bytedeco.javacpp.LLVM.LLVMInt8Type;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerType;
 import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
+import static org.bytedeco.javacpp.LLVM.LLVMVoidType;
 
+import com.mattmerr.hitch.parsetokens.expression.Variable;
+import com.sun.istack.internal.Pool.Impl;
+import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import org.bytedeco.javacpp.LLVM;
 import org.bytedeco.javacpp.LLVM.LLVMModuleRef;
 import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
@@ -25,6 +35,9 @@ public class HScope {
 
   private Map<String, LLVMTypeRef> typeMap = new HashMap<>();
   private Map<String, LLVMValueRef> valueMap = new HashMap<>();
+  private Map<String, CompiledFile> dependencyMap = new HashMap<>();
+
+  private Queue<Implementer> implementerQueue = new ArrayDeque<>();
 
   public HScope(LLVMModuleRef mod) {
     this.mod = mod;
@@ -33,6 +46,7 @@ public class HScope {
   public HScope(LLVMModuleRef mod, HScope parentScope) {
     this.mod = mod;
     this.parent = parentScope;
+    this.dependencyMap = parentScope.dependencyMap;
   }
 
   public LLVMModuleRef getModuleRef() {
@@ -40,14 +54,8 @@ public class HScope {
   }
 
   public void declareStandardFunctions() {
-    LLVMValueRef printf = LLVMAddFunction(mod, "printf",
-        LLVMFunctionType(LLVMInt32Type(),
-            new PointerPointer<>(new LLVMTypeRef[]{LLVMPointerType(LLVMInt8Type(), 0)}), 1, 1));
-    declare("printf", LLVMTypeOf(printf));
-    put("printf", printf);
-
     LLVMValueRef memcpy = LLVMAddFunction(mod, "llvm.memcpy.p0i8.p0i8.i32",
-        LLVMFunctionType(LLVMInt32Type(),
+        LLVMFunctionType(LLVMVoidType(),
             new PointerPointer<>(
                 LLVMPointerType(LLVMInt8Type(), 0), // dest
                 LLVMPointerType(LLVMInt8Type(), 0), // src
@@ -55,8 +63,8 @@ public class HScope {
                 LLVMInt32Type(),
                 LLVMInt1Type()
             ), 5, 0));
-    declare("memcpy", LLVMTypeOf(memcpy));
-    put("memcpy", memcpy);
+    declare("strcpy", LLVMTypeOf(memcpy));
+    put("strcpy", memcpy);
   }
 
   public HScope childScope() {
@@ -82,6 +90,20 @@ public class HScope {
     typeMap.put(identifier, typeRef);
   }
 
+  public void declareDependency(String identifier, CompiledFile compiledFile) {
+    dependencyMap.put(identifier.substring(identifier.lastIndexOf(".")+1), compiledFile);
+
+    for (Map.Entry<String, LLVMValueRef> entry : compiledFile.scope.valueMap.entrySet()) {
+      if (LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(entry.getValue())))
+          == LLVMFunctionTypeKind) {
+        LLVMValueRef func = LLVMAddFunction(mod, compiledFile.id + "." + entry.getKey(),
+            LLVMGetElementType(LLVMTypeOf(entry.getValue())));
+        declare(compiledFile.id + "." + entry.getKey(), LLVMTypeOf(func));
+        put(compiledFile.id + "." + entry.getKey(), func);
+      }
+    }
+  }
+
   public void put(String identifier, LLVMValueRef value) {
     HScope curScope = this;
 
@@ -99,5 +121,33 @@ public class HScope {
 
   public LLVMTypeRef getType(String identifier) {
     return typeMap.get(identifier);
+  }
+
+  public void addImplementer(Implementer implementer) {
+    implementerQueue.add(implementer);
+  }
+
+  public void addImplementers(Collection<Implementer> implementers) {
+    implementerQueue.addAll(implementers);
+  }
+
+  public void implement() {
+    while (!implementerQueue.isEmpty()) { implementerQueue.remove().implement(this); }
+  }
+
+  public boolean isDependency(String id) {
+    return dependencyMap.containsKey(id);
+  }
+
+  public CompiledFile getDependency(String id) {
+    return dependencyMap.get(id);
+  }
+
+  public boolean isTopLevel() {
+    return parent == null;
+  }
+
+  public Collection<CompiledFile> getDependencies() {
+    return dependencyMap.values();
   }
 }
