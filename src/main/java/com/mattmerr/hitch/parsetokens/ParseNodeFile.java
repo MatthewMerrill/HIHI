@@ -5,12 +5,14 @@ import com.mattmerr.hitch.tokens.Keyword;
 import com.mattmerr.hitch.tokens.Token;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ParseNodeFile {
 
   public ParsingScope scope;
   public Collection<ParseNodeImportStatement> dependencies;
-  public ParseNodeBlock block;
+  public ParseNodeTopLevelBlock block;
 
   private ParseNodeFile() { /* static for no reason */ }
 
@@ -25,11 +27,7 @@ public class ParseNodeFile {
       token = tokenStream.peek();
     }
 
-    file.block = new ParseNodeBlock();
-
-    while (!tokenStream.eof()) {
-      file.block.addStatement(ParseNodeStatement.parse(file.scope, tokenStream));
-    }
+    file.block = ParseNodeTopLevelBlock.parse(file.scope, tokenStream, false);
 
     return file;
   }

@@ -6,6 +6,7 @@ import java.util.Map;
 /**
  * Created by merrillm on 2/4/17.
  */
+// todo: probably delete
 public class ParsingScope {
     
     private Map<String, ParseNodeObject> map = new HashMap<>();

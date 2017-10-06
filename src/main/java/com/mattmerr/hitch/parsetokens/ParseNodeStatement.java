@@ -1,7 +1,5 @@
 package com.mattmerr.hitch.parsetokens;
 
-import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.DOT;
-import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.OPEN_PARENTHESIS;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.SEMICOLON;
 
 import com.mattmerr.hitch.TokenStream;

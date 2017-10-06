@@ -1,4 +1,4 @@
-func sayHelloTo(name)
+func<<string>,void> sayHelloTo(name)
     println("Hello, "+name+"!");
 
 sayHelloTo("Charlie");
