@@ -1,6 +1,7 @@
 package com.mattmerr.hacc;
 
 import org.bytedeco.javacpp.LLVM;
+import org.bytedeco.javacpp.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.javacpp.LLVM.LLVMBuilderRef;
 import org.bytedeco.javacpp.LLVM.LLVMModuleRef;
 
@@ -11,6 +12,7 @@ public class EmitContext {
   public final String contextPath;
   public final EmitScope scope;
   public final LLVMBuilderRef builderRef;
+  public final LLVMBasicBlockRef blockRef;
 
   public EmitContext(String moduleName) {
     this.parent = null;
@@ -18,23 +20,33 @@ public class EmitContext {
     this.contextPath = "root";
     this.scope = new EmitScope();
     this.builderRef = null;
+    this.blockRef = null;
   }
 
   private EmitContext(EmitContext parent, EmitScope scope, String contextPath,
-      LLVMBuilderRef builderRef) {
+      LLVMBuilderRef builderRef, LLVMBasicBlockRef blockRef) {
     this.parent = parent;
     this.moduleRef = parent.moduleRef;
     this.contextPath = contextPath;
     this.scope = scope;
     this.builderRef = builderRef;
+    this.blockRef = blockRef;
   }
 
   public EmitContext createChildCtx(String name) {
-    return new EmitContext(this, new EmitScope(scope), this.contextPath + ">" + name, null);
+    return new EmitContext(this, new EmitScope(scope), this.contextPath + ">" + name, null,
+        blockRef);
   }
 
   public EmitContext createChildCtx(String name, LLVMBuilderRef builderRef) {
-    return new EmitContext(this, new EmitScope(scope), this.contextPath + ">" + name, builderRef);
+    return new EmitContext(this, new EmitScope(scope), this.contextPath + ">" + name, builderRef,
+        blockRef);
+  }
+
+  public EmitContext createChildCtx(String name, LLVMBuilderRef builderRef,
+      LLVMBasicBlockRef blockRef) {
+    return new EmitContext(this, new EmitScope(scope), this.contextPath + ">" + name, builderRef,
+        blockRef);
   }
 
   public RuntimeException compileException(Exception e) {

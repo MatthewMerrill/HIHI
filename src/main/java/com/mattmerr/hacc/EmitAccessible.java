@@ -1,5 +1,6 @@
 package com.mattmerr.hacc;
 
+import com.mattmerr.hacc.EmitItem.EmitItemDependency;
 import com.mattmerr.hacc.EmitItem.EmitItemFunction;
 import com.mattmerr.hacc.EmitItem.EmitItemType;
 import com.mattmerr.hacc.EmitItem.EmitItemVar;
@@ -53,4 +54,15 @@ public interface EmitAccessible {
     return null;
   }
 
+  default EmitItemDependency getEmitItemDep(EmitContext emitContext, String name) {
+    EmitItem emitItem = getEmitItem(emitContext, name);
+    if (emitItem != null) {
+      if (emitItem instanceof EmitItemDependency) {
+        return (EmitItemDependency) emitItem;
+      }
+      throw emitContext
+          .compileException("Expected EmitItemDependency, found " + emitItem.getClass().getName());
+    }
+    return null;
+  }
 }

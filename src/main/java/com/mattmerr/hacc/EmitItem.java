@@ -5,11 +5,11 @@ import static org.bytedeco.javacpp.LLVM.LLVMBuildAlloca;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildStore;
 import static org.bytedeco.javacpp.LLVM.LLVMConstPointerNull;
 import static org.bytedeco.javacpp.LLVM.LLVMConstStruct;
+import static org.bytedeco.javacpp.LLVM.LLVMGetElementType;
 import static org.bytedeco.javacpp.LLVM.LLVMGetTypeKind;
 import static org.bytedeco.javacpp.LLVM.LLVMIsGlobalConstant;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerType;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerTypeKind;
-import static org.bytedeco.javacpp.LLVM.LLVMSetGlobalConstant;
 import static org.bytedeco.javacpp.LLVM.LLVMStructGetTypeAtIndex;
 import static org.bytedeco.javacpp.LLVM.LLVMStructSetBody;
 import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
@@ -17,7 +17,6 @@ import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
 import java.util.HashMap;
 import java.util.Map;
 import org.bytedeco.javacpp.LLVM;
-import org.bytedeco.javacpp.LLVM.LLVMBuilderRef;
 import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.bytedeco.javacpp.PointerPointer;
@@ -28,12 +27,19 @@ public interface EmitItem {
 
     private final String name;
     private final LLVMTypeRef typeRef;
+    private final boolean isNative;
     private Map<String, Integer> memberIndices = null;
+    private Map<Integer, String> memberIndicesRev = null;
     private Map<String, EmitItem> members;
 
-    public EmitItemType(String name, LLVMTypeRef typeRef) {
+    public EmitItemType(String name, LLVMTypeRef typeRef, boolean isNative) {
       this.name = name;
       this.typeRef = typeRef;
+      this.isNative = isNative;
+    }
+
+    public EmitItemType(String name, LLVMTypeRef typeRef) {
+      this(name, typeRef, false);
     }
 
     public String getName() {
@@ -50,6 +56,7 @@ public interface EmitItem {
 
     public void populate(EmitContext ctx, Map<String, EmitItem> memberMap) {
       this.memberIndices = new HashMap<>();
+      this.memberIndicesRev = new HashMap<>();
       this.members = memberMap;
 
       LLVMTypeRef[] types = new LLVMTypeRef[members.size()];
@@ -62,7 +69,12 @@ public interface EmitItem {
               "Cannot populate type: null member, should be impossible.");
         }
         else if (member instanceof EmitItemType) {
-          types[i] = LLVMPointerType(((EmitItemType) member).getTypeRef(), 0);
+          if (((EmitItemType) member).isNative) {
+            types[i] = ((EmitItemType) member).getTypeRef();
+          }
+          else {
+            types[i] = LLVMPointerType(((EmitItemType) member).getTypeRef(), 0);
+          }
         }
         else if (member instanceof EmitItemFunction) {
           types[i] = LLVMTypeOf(((EmitItemFunction) member).pointer);
@@ -71,6 +83,7 @@ public interface EmitItem {
           throw ctx.compileException(
               "Cannot populate type: invalid member type: " + memberName.getClass().getName());
         }
+        memberIndicesRev.put(i, memberName);
         memberIndices.put(memberName, i++);
       }
       LLVMStructSetBody(typeRef, new PointerPointer<>(types), i, 0);
@@ -103,15 +116,15 @@ public interface EmitItem {
         }
       }
       for (int argIdx = 0; argIdx < args.length; argIdx++) {
-        if (args[argIdx] == null) {
-          args[argIdx] = LLVMConstPointerNull(LLVMStructGetTypeAtIndex(typeRef, argIdx));
+        if (args[argIdx] == null
+            && LLVMGetTypeKind(LLVMStructGetTypeAtIndex(typeRef, argIdx)) == LLVMPointerTypeKind) {
+          args[argIdx] = LLVMConstPointerNull(
+              LLVMGetElementType(LLVMStructGetTypeAtIndex(typeRef, argIdx)));
         }
       }
-
-      System.out.println(argRefs);
-      System.out.println(args.length);
       LLVMValueRef val = LLVM.LLVMBuildAlloca(ctx.builderRef, typeRef, "");
-//      LLVMBuildStore(ctx.builderRef, LLVMConstStruct(new PointerPointer<>(args), args.length, 0), val);
+//      LLVMBuildStore(ctx.builderRef, LLVMConstStruct(new PointerPointer<>(args), args.length,
+// 0), val);
 //      for (arg)
 //      LLVMValueRef ref = LLVM.LLVMBuildAlloca(ctx.builderRef, LLVMPointerType(typeRef, 0), "");
 //      LLVMBuildStore(ctx.builderRef, val, ref);
@@ -173,13 +186,13 @@ public interface EmitItem {
     }
 
     void assign(EmitContext ctx, LLVMValueRef valueRef) {
-      if (LLVMIsGlobalConstant(this.pointer) == 0) {
+//      if (LLVMIsGlobalConstant(this.pointer) == 0) {
         LLVMBuildStore(ctx.builderRef, valueRef, pointer);
-      }
-      else {
+//      }
+//      else {
 
 //        LLVMStore
-      }
+//      }
     }
 
   }
@@ -190,6 +203,20 @@ public interface EmitItem {
 
     public EmitItemFunction(EmitContext ctx, String name, LLVMValueRef valRef) {
       super(ctx, name, valRef, true);
+    }
+  }
+
+  public static class EmitItemDependency implements EmitItem, EmitAccessible {
+
+    EmitScope scope;
+
+    public EmitItemDependency(EmitContext ctx, EmitScope scope) {
+      this.scope = scope;
+    }
+
+    @Override
+    public EmitItem peekEmitItem(EmitContext emitContext, String name) {
+      return scope.peekEmitItem(emitContext, name);
     }
   }
 

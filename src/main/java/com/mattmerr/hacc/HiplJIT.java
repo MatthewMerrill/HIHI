@@ -24,7 +24,7 @@ import org.bytedeco.javacpp.PointerPointer;
 
 public class HiplJIT {
 
-  public static void run(EmitContext ctx, String[] deps) {
+  public static void run(EmitContext ctx, String[] deps, String mainFileId) {
     BytePointer error = new BytePointer((Pointer) null); // Used to retrieve messages from functions
     LLVMLinkInMCJIT();
     LLVMInitializeNativeAsmPrinter();
@@ -45,10 +45,10 @@ public class HiplJIT {
     }
 
     for (String dep : deps) {
-      LLVMMemoryBufferRef[] bufferRef = new LLVMMemoryBufferRef[] {
+      LLVMMemoryBufferRef[] bufferRef = new LLVMMemoryBufferRef[]{
           new LLVMMemoryBufferRef()
       };
-      LLVMModuleRef[] moduleRefs = new LLVMModuleRef[] {
+      LLVMModuleRef[] moduleRefs = new LLVMModuleRef[]{
           new LLVMModuleRef()
       };
       byte[] buf = new byte[512];
@@ -82,7 +82,10 @@ public class HiplJIT {
 
 //    LLVMGenericValueRef exec_args = LLVMCreateGenericValueOfInt(LLVMInt32Type(), 10, 0);
     LLVMGenericValueRef exec_res = LLVMRunFunction(engine,
-        ctx.scope.getEmitItemFunction(ctx, "main").pointer, 0, (LLVMGenericValueRef) null);
+        ctx.scope
+            .getEmitItemDep(ctx, mainFileId)
+            .getEmitItemFunction(ctx, "main").pointer, 0,
+        (LLVMGenericValueRef) null);
 //    System.err.println();
 //    System.err.println("; Running fac(10) with JIT...");
 //    System.err.println("; Result: " + LLVMGenericValueToInt(exec_res, 0));
