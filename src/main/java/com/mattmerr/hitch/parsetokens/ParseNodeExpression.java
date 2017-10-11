@@ -6,11 +6,13 @@ import static com.mattmerr.hitch.parsetokens.expression.ExpressionToken.Expressi
 import static com.mattmerr.hitch.parsetokens.expression.Operation.Associativity.LEFT;
 import static com.mattmerr.hitch.parsetokens.expression.Operation.Associativity.RIGHT;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.CLOSE_PARENTHESIS;
+import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.OPEN_BRACKET;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.OPEN_PARENTHESIS;
 
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.parsetokens.expression.BinaryOperation;
 import com.mattmerr.hitch.parsetokens.expression.Call;
+import com.mattmerr.hitch.parsetokens.expression.Dict;
 import com.mattmerr.hitch.parsetokens.expression.ExpressionToken;
 import com.mattmerr.hitch.parsetokens.expression.Literal;
 import com.mattmerr.hitch.parsetokens.expression.Operation;
@@ -126,6 +128,12 @@ public class ParseNodeExpression extends ParseNode {
           ExpressionToken popped = buffer.pop();
           lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
         }
+        else if (((Punctuation) tok).value == OPEN_BRACKET) {
+          Dict dict = Dict.parseDict(scope, tokenStream);
+          output.add(dict);
+          lastTokenType = ExpressionToken.ExpressionTokenType.VALUE;
+          continue;
+        }
         else {
           Operation op = Operation.getOperation(((Punctuation) tok).value);
           if (op != null) {
@@ -180,7 +188,7 @@ public class ParseNodeExpression extends ParseNode {
     while (!queue.isEmpty()) {
       ExpressionToken cur = queue.remove();
 
-      if (cur instanceof Literal || cur instanceof Variable) {
+      if (cur instanceof Literal || cur instanceof Variable || cur instanceof Dict) {
         stack.push(cur);
       }
       else if (cur instanceof BinaryOperation) {

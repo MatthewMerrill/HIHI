@@ -3,6 +3,7 @@ package com.mattmerr.hitch.parsetokens;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.CLOSE_PARENTHESIS;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.COMMA;
 import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.OPEN_PARENTHESIS;
+import static com.mattmerr.hitch.tokens.Punctuation.PunctuationType.SEMICOLON;
 
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.Type;
@@ -23,7 +24,8 @@ public class ParseNodeFunction extends ParseNodeObject {
   public List<String> argumentTypes;
   public String returnType = null;
 
-  public ParseNodeStatement definition;
+  public boolean isNative = false;
+  public ParseNodeStatement definition = null;
 
   public static List<ParseNodeExpression> parseCallArguments(ParsingScope scope,
       TokenStream tokenStream) {
@@ -68,6 +70,34 @@ public class ParseNodeFunction extends ParseNodeObject {
       for (String arg : function.argumentMapping) { innerScope.declare(arg); }
 
       function.definition = ParseNodeStatement.parse(innerScope, tokenStream);
+
+      return function;
+    }
+    else if (tokenStream.peek().type == TokenType.KEYWORD
+        && ((Keyword) tokenStream.peek()).value.equals("native_func")) {
+      tokenStream.next();
+
+      ParseNodeFunction function = new ParseNodeFunction();
+      function.isNative = true;
+
+      tokenStream.expectingOperator(OperatorType.LT);
+      ParseNodeTypingParameter typings = ParseNodeTypingParameter.parse(scope, tokenStream);
+      function.setArgumentTypes(scope, tokenStream, typings);
+
+      if (tokenStream.peek().type == TokenType.IDENTIFIER) {
+        String functionName = ((Identifier) tokenStream.next()).value;
+
+        scope.declare(functionName);
+        scope.put(functionName, function);
+
+        function.name = functionName;
+      }
+      else {
+        throw tokenStream.parseException("native_funcs must be named");
+      }
+
+      function.argumentMapping = parseArgumentDeclarations(scope, tokenStream);
+      tokenStream.skipPunctuation(SEMICOLON);
 
       return function;
     }

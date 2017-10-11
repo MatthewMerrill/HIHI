@@ -51,10 +51,10 @@ public abstract class ParseNodeStatement extends ParseNode {
     if (peekType == TokenType.KEYWORD) {
       Keyword keyword = (Keyword) tokenStream.peek();
 
+      //todo
       if (keyword.value.equals("export")) {
-
       }
-      else if (keyword.value.equals("func")) {
+      else if (keyword.value.equals("native_func") || keyword.value.equals("func")) {
         ParseNodeFunctionDeclaration decl = new ParseNodeFunctionDeclaration();
         decl.function = ParseNodeFunction.parseFunction(scope, tokenStream);
         return decl;
@@ -94,8 +94,8 @@ public abstract class ParseNodeStatement extends ParseNode {
         declaration.qualifiedIdentifier = identifier.value;
         tokenStream.skipPunctuation(SEMICOLON);
 
-        if (!"int,string,".contains(declaration.type+","))
-          throw tokenStream.parseException("var Type may only be one of: [int, string]");
+//        if (!"int,string,".contains(declaration.type+","))
+//          throw tokenStream.parseException("var Type may only be one of: [int, string]");
 
         scope.declare(declaration.qualifiedIdentifier);
         return declaration;

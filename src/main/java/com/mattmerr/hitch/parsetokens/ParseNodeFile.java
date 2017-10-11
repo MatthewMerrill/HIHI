@@ -17,7 +17,7 @@ public class ParseNodeFile {
   private ParseNodeFile() { /* static for no reason */ }
 
   public static ParseNodeFile parseFile(TokenStream tokenStream) {
-    ParseNodeFile file =  new ParseNodeFile();
+    ParseNodeFile file = new ParseNodeFile();
     file.scope = new ParsingScope();
     file.dependencies = new ArrayList<>();
 
@@ -28,6 +28,10 @@ public class ParseNodeFile {
     }
 
     file.block = ParseNodeTopLevelBlock.parse(file.scope, tokenStream, false);
+
+    if (!tokenStream.eof()) {
+      throw tokenStream.parseException("Parsing has ended but still found a " + tokenStream.peek());
+    }
 
     return file;
   }

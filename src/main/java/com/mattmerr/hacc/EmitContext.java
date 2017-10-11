@@ -45,6 +45,15 @@ public class EmitContext {
     return compileException(new RuntimeException(message));
   }
 
+  public RuntimeException compileExceptionWithContextName(String innerContextName, Exception e) {
+    return new RuntimeException(
+        "Exception while compiling \"" + contextPath + ">" + innerContextName + "\"", e);
+  }
+
+  public RuntimeException compileExceptionWithContextName(String innerContextName, String message) {
+    return compileExceptionWithContextName(innerContextName, new RuntimeException(message));
+  }
+
   public void throwCompileException(String message) {
     throw compileException(message);
   }

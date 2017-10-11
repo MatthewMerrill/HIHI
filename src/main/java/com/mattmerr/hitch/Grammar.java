@@ -16,14 +16,15 @@ public class Grammar {
 
   // KEEP THIS SORTED!
   private static final String[] keywords = {
-      "class", "do", "else", "export", "for", "func", "if", "import", "in", "type", "var", "while",
+      "class", "do", "else", "export", "for", "func", "if", "import", "in", "native_func", "type",
+      "var", "while",
   };
 
   private static final String IDENTIFIER_STARTER = "[a-zA-Z_]";
   private static final String IDENTIFIER = "[a-zA-Z_0-9]";
 
   private static final String OP_CHARS = "+-*/%=&|<>!^~";
-  private static final String PUNC_CHARS = ".,;(){}[]";
+  private static final String PUNC_CHARS = ".,:;(){}[]";
 
   public static Map<Character, Character> ESCAPE_CHARS = new HashMap<Character, Character>() {{
     put('n', '\n');

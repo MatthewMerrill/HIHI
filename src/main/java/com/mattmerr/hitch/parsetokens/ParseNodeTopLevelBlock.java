@@ -5,6 +5,7 @@ import static com.mattmerr.hitch.parsetokens.ParseNodeFunction.parseFunction;
 
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.tokens.Keyword;
+import com.mattmerr.hitch.tokens.Punctuation;
 import com.mattmerr.hitch.tokens.Punctuation.PunctuationType;
 import com.mattmerr.hitch.tokens.Token;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class ParseNodeTopLevelBlock {
           block.variableDeclarations.add(parseTopLevelDeclaration(parsingScope, tokenStream));
           continue;
         }
-        else if ("func".equals(((Keyword) tok).value)) {
+        else if ((((Keyword) tok).value).endsWith("func")) {
           block.functions.add(parseFunction(parsingScope, tokenStream));
           continue;
         }
@@ -44,7 +45,17 @@ public class ParseNodeTopLevelBlock {
           continue;
         }
       }
-      break;
+      else if (tok instanceof Punctuation
+          && ((Punctuation) tok).value == PunctuationType.CLOSE_BRACKET) {
+        if (brackets) {
+          break;
+        }
+        else {
+          throw tokenStream.parseException("Unexpected close bracket");
+        }
+      }
+      throw tokenStream
+          .parseException("Top level blocks may only contain vars, funcs, or types. Found: " + tok);
     }
 
     if (brackets) {
