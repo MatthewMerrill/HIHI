@@ -3,7 +3,6 @@ package com.mattmerr.hitch;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
-import com.sun.javafx.UnmodifiableArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +34,7 @@ public class Grammar {
     put('\'', '\'');
   }};
 
-  public static final List<String> keywordList = unmodifiableList(asList(keywords));
+  public static final List<String> keywordList = List.of(keywords);
 
   public static boolean isKeyword(String kw) {
     return Arrays.binarySearch(keywords, kw) >= 0;

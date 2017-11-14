@@ -56,6 +56,7 @@ public class HiplJIT {
           new BytePointer(dep),
           bufferRef[0],
           new BytePointer(buf))) {
+        System.err.printf("Error reading memorybuffer at \"%s\"", dep);
         System.err.println(new String(buf));
         System.err.println(bufferRef[0]);
         return;

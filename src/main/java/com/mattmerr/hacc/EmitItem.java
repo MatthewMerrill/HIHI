@@ -2,7 +2,10 @@ package com.mattmerr.hacc;
 
 import static org.bytedeco.javacpp.LLVM.LLVMAddGlobal;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildAlloca;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildInsertElement;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildInsertValue;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildStore;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildStructGEP;
 import static org.bytedeco.javacpp.LLVM.LLVMConstPointerNull;
 import static org.bytedeco.javacpp.LLVM.LLVMConstStruct;
 import static org.bytedeco.javacpp.LLVM.LLVMGetElementType;
@@ -10,6 +13,7 @@ import static org.bytedeco.javacpp.LLVM.LLVMGetTypeKind;
 import static org.bytedeco.javacpp.LLVM.LLVMIsGlobalConstant;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerType;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerTypeKind;
+import static org.bytedeco.javacpp.LLVM.LLVMSetGC;
 import static org.bytedeco.javacpp.LLVM.LLVMStructGetTypeAtIndex;
 import static org.bytedeco.javacpp.LLVM.LLVMStructSetBody;
 import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
@@ -117,12 +121,21 @@ public interface EmitItem {
       }
       for (int argIdx = 0; argIdx < args.length; argIdx++) {
         if (args[argIdx] == null
-            && LLVMGetTypeKind(LLVMStructGetTypeAtIndex(typeRef, argIdx)) == LLVMPointerTypeKind) {
+            && LLVMGetTypeKind(LLVMStructGetTypeAtIndex(typeRef, argIdx)) ==
+            LLVMPointerTypeKind) {
           args[argIdx] = LLVMConstPointerNull(
               LLVMGetElementType(LLVMStructGetTypeAtIndex(typeRef, argIdx)));
         }
       }
-      LLVMValueRef val = LLVM.LLVMBuildAlloca(ctx.builderRef, typeRef, "");
+      LLVMValueRef val = LLVM.LLVMBuildMalloc(ctx.builderRef, typeRef, "");
+      LLVMSetGC(val, "shadow-stack");
+      for (int argIdx = 0; argIdx < args.length; argIdx++) {
+        if (args[argIdx] != null) {
+          LLVMBuildStore(ctx.builderRef, args[argIdx],
+              LLVMBuildStructGEP(ctx.builderRef, val, argIdx, ctx.contextPath.replace('>', '_')));
+        }
+      }
+//      System.out.println(ctx.contextPath);
 //      LLVMBuildStore(ctx.builderRef, LLVMConstStruct(new PointerPointer<>(args), args.length,
 // 0), val);
 //      for (arg)
@@ -187,7 +200,7 @@ public interface EmitItem {
 
     void assign(EmitContext ctx, LLVMValueRef valueRef) {
 //      if (LLVMIsGlobalConstant(this.pointer) == 0) {
-        LLVMBuildStore(ctx.builderRef, valueRef, pointer);
+      LLVMValueRef store = LLVMBuildStore(ctx.builderRef, valueRef, pointer);
 //      }
 //      else {
 

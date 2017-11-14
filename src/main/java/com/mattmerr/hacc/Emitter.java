@@ -4,20 +4,28 @@ import static com.mattmerr.hacc.EmitExpression.visitExpression;
 import static com.mattmerr.hacc.EmitExpression.visitTruthy;
 import static java.lang.String.format;
 import static org.bytedeco.javacpp.LLVM.LLVMAddFunction;
+import static org.bytedeco.javacpp.LLVM.LLVMAlloca;
 import static org.bytedeco.javacpp.LLVM.LLVMAppendBasicBlock;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildAlloca;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildBr;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildCondBr;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildLoad;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildRet;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildRetVoid;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildStore;
 import static org.bytedeco.javacpp.LLVM.LLVMCreateBuilder;
 import static org.bytedeco.javacpp.LLVM.LLVMFunctionType;
 import static org.bytedeco.javacpp.LLVM.LLVMGetBasicBlockParent;
+import static org.bytedeco.javacpp.LLVM.LLVMGetBasicBlockTerminator;
 import static org.bytedeco.javacpp.LLVM.LLVMGetElementType;
+import static org.bytedeco.javacpp.LLVM.LLVMGetInsertBlock;
 import static org.bytedeco.javacpp.LLVM.LLVMGetModuleContext;
 import static org.bytedeco.javacpp.LLVM.LLVMGetParam;
 import static org.bytedeco.javacpp.LLVM.LLVMInsertBasicBlock;
 import static org.bytedeco.javacpp.LLVM.LLVMPointerType;
+import static org.bytedeco.javacpp.LLVM.LLVMPointerTypeKind;
 import static org.bytedeco.javacpp.LLVM.LLVMPositionBuilderAtEnd;
+import static org.bytedeco.javacpp.LLVM.LLVMSetGC;
 import static org.bytedeco.javacpp.LLVM.LLVMStructCreateNamed;
 import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
 import static org.bytedeco.javacpp.LLVM.lto_module_create_from_fd_at_offset;
@@ -32,6 +40,7 @@ import com.mattmerr.hitch.parsetokens.ParseNodeExpressionStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeFile;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunction;
 import com.mattmerr.hitch.parsetokens.ParseNodeIfStatement;
+import com.mattmerr.hitch.parsetokens.ParseNodeReturnStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeType;
 import com.mattmerr.hitch.parsetokens.ParseNodeWhileStatement;
@@ -145,6 +154,7 @@ public class Emitter {
         0);
     LLVMValueRef funcRef = LLVMAddFunction(ctx.getModuleRef(), function.name, typeRef);
     EmitItemFunction emitFunc = new EmitItemFunction(ctx, function.name, funcRef);
+    LLVMSetGC(funcRef, "shadow-stack");
 //    emitFunc.scope = new EmitScope(ctx.scope);
     ctx.scope.declare(ctx, function.name, emitFunc);
   }
@@ -155,10 +165,17 @@ public class Emitter {
     if (!function.isNative) {
       LLVMValueRef func = emitFunc.pointer;
       LLVMBasicBlockRef block = LLVMAppendBasicBlock(func, "");
+      LLVMBasicBlockRef retblock = LLVMAppendBasicBlock(func, "returnblock");
       LLVMBuilderRef builderRef = LLVMCreateBuilder();
       LLVMPositionBuilderAtEnd(builderRef, block);
 
-      EmitContext innerCtx = ctx.createChildCtx(function.name, builderRef, block);
+      EmitItemType retType = ctx.scope.getEmitItemType(ctx, function.returnType);
+      LLVMValueRef retVal = null;
+      if (!retType.getName().equals("void")) {
+        retVal = LLVMBuildAlloca(builderRef, LLVMPointerType(retType.getTypeRef(), 0), "retval");
+      }
+
+      EmitContext innerCtx = ctx.createChildCtx(function.name, builderRef, block, retVal, retblock);
 
       for (int argIdx = 0; argIdx < function.argumentMapping.size(); argIdx++) {
         EmitItemType argType = ctx.scope.getEmitItemType(ctx, function.argumentTypes.get(argIdx));
@@ -171,7 +188,18 @@ public class Emitter {
       }
 
       visitStatement(innerCtx, function.definition);
-      LLVMBuildRetVoid(builderRef);
+
+      if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(builderRef)) == null) {
+        LLVMBuildBr(builderRef, retblock);
+      }
+
+      LLVMPositionBuilderAtEnd(builderRef, retblock);
+      if (retType.getName().equals("void")) {
+        LLVMBuildRetVoid(builderRef);
+      }
+      else {
+        LLVMBuildRet(builderRef, LLVMBuildLoad(builderRef, retVal, ""));
+      }
     }
   }
 
@@ -190,6 +218,9 @@ public class Emitter {
     }
     else if (statement instanceof ParseNodeWhileStatement) {
       visitWhile(ctx, (ParseNodeWhileStatement) statement);
+    }
+    else if (statement instanceof ParseNodeReturnStatement) {
+      visitReturn(ctx, (ParseNodeReturnStatement) statement);
     }
     else {
       throw ctx.compileException(
@@ -230,7 +261,10 @@ public class Emitter {
       LLVMPositionBuilderAtEnd(ctx.builderRef, ifTrue);
       visitStatement(ctx.createChildCtx("ifTrue", ctx.builderRef, ifTrue),
           ifStatement.ifTrueStatement);
-      LLVMBuildBr(ctx.builderRef, end);
+
+      if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx.builderRef)) == null) {
+        LLVMBuildBr(ctx.builderRef, end);
+      }
 
       LLVMPositionBuilderAtEnd(ctx.builderRef, end);
     }
@@ -245,13 +279,17 @@ public class Emitter {
 
       LLVMPositionBuilderAtEnd(ctx.builderRef, ifTrue);
       visitStatement(ctx.createChildCtx("ifTrue", ctx.builderRef, ifTrue),
-          ifStatement.ifFalseStatement);
-      LLVMBuildBr(ctx.builderRef, end);
+          ifStatement.ifTrueStatement);
+      if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx.builderRef)) == null) {
+        LLVMBuildBr(ctx.builderRef, end);
+      }
 
       LLVMPositionBuilderAtEnd(ctx.builderRef, ifFalse);
       visitStatement(ctx.createChildCtx("ifFalse", ctx.builderRef, ifFalse),
           ifStatement.ifFalseStatement);
-      LLVMBuildBr(ctx.builderRef, end);
+      if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx.builderRef)) == null) {
+        LLVMBuildBr(ctx.builderRef, end);
+      }
 
       LLVMPositionBuilderAtEnd(ctx.builderRef, end);
     }
@@ -276,5 +314,13 @@ public class Emitter {
         loopBody, end);
 
     LLVMPositionBuilderAtEnd(ctx.builderRef, end);
+  }
+
+  public static void visitReturn(EmitContext ctx, ParseNodeReturnStatement returnStatement) {
+    if (returnStatement.value != null) {
+      LLVMBuildStore(ctx.builderRef, visitExpression(ctx, returnStatement.value.root, false),
+          ctx.retValRef);
+    }
+    LLVMBuildBr(ctx.builderRef, ctx.retBlockRef);
   }
 }

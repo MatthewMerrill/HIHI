@@ -72,6 +72,8 @@ public class Operation extends ExpressionToken {
             case MUL: return new BinaryOperation(OperationType.MULTIPLY);
             case DIV: return new BinaryOperation(OperationType.DIVIDE);
             case EQ: return new BinaryOperation(OperationType.ASSIGN);
+            case AND: return new BinaryOperation(OperationType.LOGICAL_AND);
+            case OR: return new BinaryOperation(OperationType.LOGICAL_OR);
 
             default: throw new IllegalArgumentException("Unknown type " + operator);
         }

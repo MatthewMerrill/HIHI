@@ -4,19 +4,20 @@ import static com.mattmerr.hacc.Emitter.createFunction;
 import static com.mattmerr.hacc.Emitter.createType;
 import static com.mattmerr.hacc.Emitter.populateFunction;
 import static com.mattmerr.hacc.Emitter.populateType;
-import static com.mattmerr.hitch.parsetokens.ParseNodeFile.parseFile;
 import static java.util.Objects.requireNonNull;
 import static org.bytedeco.javacpp.LLVM.LLVMDumpModule;
+import static org.bytedeco.javacpp.LLVM.LLVMPrintModuleToFile;
 import static org.bytedeco.javacpp.LLVM.LLVMVoidType;
+import static org.bytedeco.javacpp.LLVM.LLVMWriteBitcodeToFile;
 
 import com.mattmerr.hacc.EmitItem.EmitItemDependency;
-import com.mattmerr.hacc.EmitItem.EmitItemFunction;
 import com.mattmerr.hacc.EmitItem.EmitItemType;
 import com.mattmerr.hitch.TokenStream;
 import com.mattmerr.hitch.parsetokens.ParseNodeFile;
 import com.mattmerr.hitch.parsetokens.ParseNodeFunction;
 import com.mattmerr.hitch.parsetokens.ParseNodeImportStatement;
 import com.mattmerr.hitch.parsetokens.ParseNodeType;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -24,47 +25,58 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.bytedeco.javacpp.LLVM;
 
 public class CompilerMain {
 
   private static String[] srcPaths = null;
 
-  public static void main(String[] args) {
-    String[] deps = null;
-    String fileId = null;
+  public static void main(String[] args) throws ParseException {
+    Options options = new Options();
 
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("-c")) {
-        srcPaths = args[++i].split(":");
-      }
-      if (args[i].equals("--dep")) {
-        deps = args[++i].split(":");
-      }
-      else {
-        fileId = args[i];
-      }
+    options.addOption(Option.builder("d").argName("dependencies")
+        .hasArgs()
+        .numberOfArgs(Option.UNLIMITED_VALUES)
+        .desc("LLVM dependency bitcode files")
+        .valueSeparator(File.pathSeparatorChar)
+        .longOpt("dep").build());
+
+    options.addOption(Option.builder("e").longOpt("emit").desc("emit llvm ir").build());
+    options.addOption(Option.builder("r").longOpt("run").desc("run in JIT environment").build());
+    options.addOption("h", "help", false, "Display help blurb");
+    options.addOption("c", "classpath", true, "classpath for locating files");
+
+    OptionGroup optionGroup = new OptionGroup();
+    options.addOptionGroup(optionGroup);
+
+    DefaultParser commandLineParser = new DefaultParser();
+    CommandLine cli = commandLineParser.parse(options, args);
+
+    if (cli.hasOption("h")) {
+      HelpFormatter helpFormatter = new HelpFormatter();
+      helpFormatter.printHelp("hiplc", options);
+      return;
     }
 
-//    TokenStream tokenStream;
-//
-//    if (fileId == null) {
-//      tokenStream = new TokenStream(System.in);
-//      fileId = "$stdin";
-//    }
-//    else {
-//      try {
-//        tokenStream = new TokenStream(Files.newInputStream(Paths.get(fileId)));
-//      } catch (IOException exception) {
-//        System.err.printf("Cannot read file \"%s\": %s", fileId, exception.getMessage());
-//        System.exit(1);
-//        return;
-//      }
-//    }
-//
-//    ParseNodeFile file = parseFile(tokenStream);
+    if (cli.getArgList().size() != 1) {
+      System.err
+          .printf("Expected one arg for input file. Found %d args.\n", cli.getArgList().size());
+      System.err.println(cli.getArgList());
+      return;
+    }
+
+    srcPaths = cli.getOptionValues('c');
+    String[] deps = cli.getOptionValues('d');
+    String fileId = cli.getArgList().get(0);
 
     EmitContext ctx = new EmitContext("module");
     ctx.scope.declare(ctx, "void", new EmitItemType("void", LLVMVoidType(), true));
@@ -74,8 +86,13 @@ public class CompilerMain {
     addFile(ctx, fileId);
     runEmitter();
 
-    LLVMDumpModule(ctx.getModuleRef());
-    HiplJIT.run(ctx, deps, fileId);
+    if (cli.hasOption('e')) {
+      LLVMDumpModule(ctx.getModuleRef());
+    }
+//    LLVMWriteBitcodeToFile(ctx.getModuleRef(), fileId + ".bc");
+    if (cli.hasOption('r')) {
+      HiplJIT.run(ctx, deps, fileId);
+    }
   }
 
 

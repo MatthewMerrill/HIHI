@@ -8,6 +8,7 @@ import static org.bytedeco.javacpp.LLVM.LLVMBuildICmp;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildLoad;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildStore;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildStructGEP;
+import static org.bytedeco.javacpp.LLVM.LLVMBuildSub;
 import static org.bytedeco.javacpp.LLVM.LLVMConstInt;
 import static org.bytedeco.javacpp.LLVM.LLVMGetElementType;
 import static org.bytedeco.javacpp.LLVM.LLVMGetStructName;
@@ -32,6 +33,8 @@ import com.mattmerr.hitch.parsetokens.expression.Operation.OperationType;
 import com.mattmerr.hitch.parsetokens.expression.Variable;
 import java.util.HashMap;
 import java.util.Map;
+import org.bytedeco.javacpp.LLVM;
+import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.bytedeco.javacpp.PointerPointer;
 
@@ -79,18 +82,19 @@ public class EmitExpression {
         LLVMValueRef left = visitExpression(ctx, binop.left, false);
         LLVMValueRef right = visitExpression(ctx, binop.right, false);
 
-        String leftType = LLVMGetStructName(LLVMTypeOf(left)).getString();
-        String rightType = LLVMGetStructName(LLVMTypeOf(right)).getString();
+        String leftType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(left))).getString();
+        String rightType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(right))).getString();
 
         if ("hipl_int".equals(leftType) && "hipl_int".equals(rightType)) {
-          LLVMValueRef leftValue = LLVMBuildExtractValue(ctx.builderRef, left,
+          LLVMValueRef leftValue = LLVMBuildExtractValue(ctx.builderRef,
+              LLVMBuildLoad(ctx.builderRef, left, ""),
               EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
-          LLVMValueRef rightValue = LLVMBuildExtractValue(ctx.builderRef, right,
+          LLVMValueRef rightValue = LLVMBuildExtractValue(ctx.builderRef,
+              LLVMBuildLoad(ctx.builderRef, right, ""),
               EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
 
-          Map<String, LLVMValueRef> argRefs = new HashMap<>();
-          argRefs.put("value", LLVMBuildAdd(ctx.builderRef, leftValue, rightValue, ""));
-          LLVMValueRef resultVal = EmitItemTypeInt.getInstance(ctx).construct(ctx, argRefs);
+          LLVMValueRef resultVal = EmitItemTypeInt.getInstance(ctx)
+              .construct(ctx, LLVMBuildAdd(ctx.builderRef, leftValue, rightValue, ""));
           if (asPointer) {
             throw ctx.compileException("I'm lazy and don't think this should happen");
           }
@@ -103,6 +107,93 @@ public class EmitExpression {
               "Addition between " + leftType + " and " + rightType + " is not defined");
         }
       }
+      else if (binop.type == OperationType.SUBTRACT) {
+        LLVMValueRef left = visitExpression(ctx, binop.left, false);
+        LLVMValueRef right = visitExpression(ctx, binop.right, false);
+
+        String leftType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(left))).getString();
+        String rightType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(right))).getString();
+
+        if ("hipl_int".equals(leftType) && "hipl_int".equals(rightType)) {
+          LLVMValueRef leftValue = LLVMBuildExtractValue(ctx.builderRef,
+              LLVMBuildLoad(ctx.builderRef, left, ""),
+              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+          LLVMValueRef rightValue = LLVMBuildExtractValue(ctx.builderRef,
+              LLVMBuildLoad(ctx.builderRef, right, ""),
+              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+
+          LLVMValueRef resultVal = EmitItemTypeInt.getInstance(ctx)
+              .construct(ctx, LLVMBuildSub(ctx.builderRef, leftValue, rightValue, ""));
+          if (asPointer) {
+            throw ctx.compileException("I'm lazy and don't think this should happen");
+          }
+          else {
+            return resultVal;
+          }
+        }
+        else {
+          throw ctx.compileException(
+              "Subtraction between " + leftType + " and " + rightType + " is not defined");
+        }
+      }
+//      else if (binop.type == OperationType.LOGICAL_AND) {
+//        LLVMValueRef left = visitExpression(ctx, binop.left, false);
+//        LLVMValueRef right = visitExpression(ctx, binop.right, false);
+//
+//        String leftType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(left))).getString();
+//        String rightType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(right))).getString();
+//
+//        if ("hipl_int".equals(leftType) && "hipl_int".equals(rightType)) {
+//          LLVMValueRef leftValue = LLVMBuildExtractValue(ctx.builderRef,
+//              LLVMBuildLoad(ctx.builderRef, left, ""),
+//              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+//          LLVMValueRef rightValue = LLVMBuildExtractValue(ctx.builderRef,
+//              LLVMBuildLoad(ctx.builderRef, right, ""),
+//              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+//
+//          LLVMValueRef resultVal = EmitItemTypeInt.getInstance(ctx)
+//              .construct(ctx, LLVMBuildSub(ctx.builderRef, leftValue, rightValue, ""));
+//          if (asPointer) {
+//            throw ctx.compileException("I'm lazy and don't think this should happen");
+//          }
+//          else {
+//            return resultVal;
+//          }
+//        }
+//        else {
+//          throw ctx.compileException(
+//              "Subtraction between " + leftType + " and " + rightType + " is not defined");
+//        }
+//      }
+//      else if (binop.type == OperationType.LOGICAL_OR) {
+//        LLVMValueRef left = visitExpression(ctx, binop.left, false);
+//        LLVMValueRef right = visitExpression(ctx, binop.right, false);
+//
+//        String leftType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(left))).getString();
+//        String rightType = LLVMGetStructName(LLVMGetElementType(LLVMTypeOf(right))).getString();
+//
+//        if ("hipl_int".equals(leftType) && "hipl_int".equals(rightType)) {
+//          LLVMValueRef leftValue = LLVMBuildExtractValue(ctx.builderRef,
+//              LLVMBuildLoad(ctx.builderRef, left, ""),
+//              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+//          LLVMValueRef rightValue = LLVMBuildExtractValue(ctx.builderRef,
+//              LLVMBuildLoad(ctx.builderRef, right, ""),
+//              EmitItemTypeInt.getInstance(ctx).memberIndex("$value", true), "");
+//
+//          LLVMValueRef resultVal = EmitItemTypeInt.getInstance(ctx)
+//              .construct(ctx, LLVMBuildSub(ctx.builderRef, leftValue, rightValue, ""));
+//          if (asPointer) {
+//            throw ctx.compileException("I'm lazy and don't think this should happen");
+//          }
+//          else {
+//            return resultVal;
+//          }
+//        }
+//        else {
+//          throw ctx.compileException(
+//              "Subtraction between " + leftType + " and " + rightType + " is not defined");
+//        }
+//      }
       else if (binop.type == OperationType.ASSIGN) {
         LLVMValueRef leftRef = visitExpression(ctx, binop.left, true);
         LLVMValueRef rightRef = visitExpression(ctx, binop.right, false);
@@ -118,7 +209,8 @@ public class EmitExpression {
         if (binop.left instanceof Variable) {
           EmitItem emitItem = ctx.scope.peekEmitItem(ctx, ((Variable) binop.left).qualifiedName);
           if (emitItem instanceof EmitItemDependency) {
-            emitItem = ((EmitItemDependency) emitItem).peekEmitItem(ctx, ((Variable)binop.right).qualifiedName);
+            emitItem = ((EmitItemDependency) emitItem)
+                .peekEmitItem(ctx, ((Variable) binop.right).qualifiedName);
             if (emitItem instanceof EmitItemFunction) {
               return ((EmitItemFunction) emitItem).pointer;
             }
@@ -191,6 +283,9 @@ public class EmitExpression {
         throw ctx.compileException("Cannot evaluate truthiness without builder ref");
       }
     }
+//    else if (LLVMGetTypeKind(LLVMTypeOf(valueRef)) == LLVM.LLVMIntegerTypeKind) {
+//      return valueRef;
+//    }
     else {
       throw ctx.compileException("Truthiness expressions may only hold integer values!");
     }

@@ -1,6 +1,7 @@
 package com.mattmerr.hacc;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildAlloca;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildGlobalStringPtr;
 import static org.bytedeco.javacpp.LLVM.LLVMBuildLoad;
@@ -15,6 +16,7 @@ import static org.bytedeco.javacpp.LLVM.LLVMStructCreateNamed;
 
 import com.mattmerr.hacc.EmitItem.EmitItemType;
 import java.util.HashMap;
+import java.util.Map;
 import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 
@@ -44,13 +46,14 @@ public class EmitItemNativeType {
     }
 
     public LLVMValueRef construct(EmitContext ctx, int val) {
+      return construct(ctx, LLVMConstInt(LLVMInt32Type(), val, 0));
+    }
+
+    public LLVMValueRef construct(EmitContext ctx, LLVMValueRef val) {
       if (ctx.builderRef == null) {
         throw ctx.compileException("No builder for initialized value");
       }
-      LLVMValueRef ret = super.construct(ctx, emptyMap());
-      LLVMBuildStore(ctx.builderRef,
-          LLVMConstInt(LLVMInt32Type(), val, 0),
-          LLVMBuildStructGEP(ctx.builderRef, ret, memberIndex("$value", true), ""));
+      LLVMValueRef ret = super.construct(ctx, singletonMap("$value", val));
       return ret;
     }
   }
@@ -82,12 +85,16 @@ public class EmitItemNativeType {
       if (ctx.builderRef == null) {
         throw ctx.compileException("No builder for initialized value");
       }
-      LLVMValueRef ret = super.construct(ctx, emptyMap());
       LLVMValueRef strValue = LLVMBuildGlobalStringPtr(ctx.builderRef, string, "");
       LLVMValueRef lenValue = EmitItemTypeInt.theInstance.construct(ctx, string.length());
 //      LLVMBuildStore(ctx.builderRef,
 //          LLVMConstInt(LLVMInt32Type(), string.length(), 0),
 //          i32Ptr);
+
+      LLVMValueRef ret = super.construct(ctx, Map.ofEntries(
+          Map.entry("$value", strValue),
+          Map.entry("length", lenValue)
+      ));
 
       LLVMBuildStore(ctx.builderRef,
           strValue,
